@@ -11,6 +11,8 @@ import '../features/maintenance/presentation/maintenance_screen.dart';
 import '../features/map/presentation/live_map_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
+import '../features/progress/presentation/job_progress_screen.dart';
+import '../features/reports/presentation/reports_screen.dart';
 import '../features/robots/presentation/robot_list_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/waste/presentation/waste_screen.dart';
@@ -71,6 +73,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LiveMapScreen(),
       ),
       GoRoute(
+        path: '/progress',
+        builder: (context, state) => const JobProgressScreen(),
+      ),
+      GoRoute(
         path: '/detections',
         builder: (context, state) => const DetectionsScreen(),
       ),
@@ -89,6 +95,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/history',
         builder: (context, state) => const HistoryScreen(),
+      ),
+      GoRoute(
+        path: '/reports',
+        builder: (context, state) => const ReportsScreen(),
       ),
       GoRoute(
         path: '/maintenance',

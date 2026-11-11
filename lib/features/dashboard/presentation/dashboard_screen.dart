@@ -114,7 +114,9 @@ class DashboardScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: AppColors.staleBadgeBackground,
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.staleBadgeText.withOpacity(0.3)),
+                        border: Border.all(
+                          color: AppColors.staleBadgeText.withValues(alpha: 0.3),
+                        ),
                       ),
                       child: const Row(
                         children: [
@@ -132,7 +134,7 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 12),
                   ],
 
-                  // Current Active Job Card (MOB-DASH-004)
+                  // Current Active Job Card (MOB-DASH-004, MOB-PROG-001)
                   _buildActiveJobCard(context, dashboardState.summary?.activeJob),
                   const SizedBox(height: 12),
 
@@ -210,71 +212,72 @@ class DashboardScreen extends ConsumerWidget {
       );
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.cleaning_services, color: AppColors.statusCleaning, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      job.zoneName,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
-                ),
-                Text(
-                  '${job.progressPercentage.toStringAsFixed(1)}%',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    color: AppColors.primaryBlue,
+    return InkWell(
+      onTap: () => context.push('/progress'),
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.cleaning_services, color: AppColors.statusCleaning, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        job.zoneName,
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: job.progressPercentage / 100,
-                minHeight: 8,
-                backgroundColor: const Color(0xFFE2E8F0),
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.statusCleaning),
+                  Text(
+                    '${job.progressPercentage.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.primaryBlue,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Coverage: ${job.coverageAreaM2.toStringAsFixed(1)} m²',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: job.progressPercentage / 100,
+                  minHeight: 8,
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.statusCleaning),
                 ),
-                Text(
-                  'Elapsed: ${job.elapsedTime.inMinutes}m ${job.elapsedTime.inSeconds % 60}s',
-                  style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-                GestureDetector(
-                  onTap: () => context.push('/map'),
-                  child: const Text(
-                    'Live Map →',
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Coverage: ${job.coverageAreaM2.toStringAsFixed(1)} m²',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  Text(
+                    'Elapsed: ${job.elapsedTime.inMinutes}m ${job.elapsedTime.inSeconds % 60}s',
+                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  ),
+                  const Text(
+                    'Details →',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: AppColors.primaryBlue,
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -393,10 +396,12 @@ class DashboardScreen extends ConsumerWidget {
     final links = [
       {'title': 'Zones & Planning', 'icon': Icons.map_outlined, 'path': '/zones'},
       {'title': 'Live Map', 'icon': Icons.navigation_outlined, 'path': '/map'},
+      {'title': 'Mission Progress', 'icon': Icons.insights_outlined, 'path': '/progress'},
       {'title': 'Garbage Detections', 'icon': Icons.scatter_plot_outlined, 'path': '/detections'},
       {'title': 'Alerts & Notifications', 'icon': Icons.notifications_none, 'path': '/notifications'},
       {'title': 'Cleaning History', 'icon': Icons.history, 'path': '/history'},
-      {'title': 'Diagnostics & Maintenance', 'icon': Icons.build_outlined, 'path': '/maintenance'},
+      {'title': 'Reports & Analytics', 'icon': Icons.bar_chart_outlined, 'path': '/reports'},
+      {'title': 'Diagnostics & Health', 'icon': Icons.build_outlined, 'path': '/maintenance'},
     ];
 
     return Column(
@@ -441,4 +446,3 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 }
-

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/stale_badge.dart';
 import '../../robots/presentation/robots_controller.dart';
-import '../domain/map_model.dart';
 
 class LiveMapScreen extends ConsumerStatefulWidget {
   const LiveMapScreen({super.key});
@@ -61,7 +60,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
@@ -85,7 +84,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
             left: 16,
             right: 16,
             child: Card(
-              color: Colors.white.withOpacity(0.92),
+              color: Colors.white.withValues(alpha: 0.92),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
                 side: const BorderSide(color: AppColors.lightBorder),
@@ -98,7 +97,9 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
                     _legendItem(AppColors.primaryBlue, 'Robot Pose'),
                     _legendItem(AppColors.severityCritical, 'Obstacle'),
                     _legendItem(AppColors.statusReturning, 'Dock Station'),
-                    _legendItem(AppColors.statusCleaning.withOpacity(0.3), 'Zone Boundary'),
+                    _legendItem(
+                        AppColors.statusCleaning.withValues(alpha: 0.3),
+                        'Zone Boundary'),
                   ],
                 ),
               ),
@@ -167,10 +168,10 @@ class _FloorplanPainter extends CustomPainter {
 
     // Zone boundaries (MOB-MAP-001)
     final zonePaint = Paint()
-      ..color = AppColors.statusCleaning.withOpacity(0.08)
+      ..color = AppColors.statusCleaning.withValues(alpha: 0.08)
       ..style = PaintingStyle.fill;
     final zoneBorderPaint = Paint()
-      ..color = AppColors.statusCleaning.withOpacity(0.4)
+      ..color = AppColors.statusCleaning.withValues(alpha: 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -191,7 +192,7 @@ class _FloorplanPainter extends CustomPainter {
 
     // Planned Path (MOB-MAP-003)
     final pathPaint = Paint()
-      ..color = AppColors.primaryBlue.withOpacity(0.4)
+      ..color = AppColors.primaryBlue.withValues(alpha: 0.4)
       ..strokeWidth = 2.0
       ..style = PaintingStyle.stroke;
     final path = Path()
@@ -211,7 +212,7 @@ class _FloorplanPainter extends CustomPainter {
     canvas.drawCircle(Offset(robotX, robotY), 14, robotPaint);
 
     // Heading Arrow
-    final arrowLength = 22.0;
+    const arrowLength = 22.0;
     final headingX = robotX + arrowLength * math.cos(robotHeading);
     final headingY = robotY + arrowLength * math.sin(robotHeading);
 
@@ -231,4 +232,3 @@ class _FloorplanPainter extends CustomPainter {
         oldDelegate.isStale != isStale;
   }
 }
-

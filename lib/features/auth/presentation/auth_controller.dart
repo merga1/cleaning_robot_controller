@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/security/secure_storage_service.dart';
 import '../data/auth_repository_impl.dart';
@@ -49,7 +48,6 @@ class AuthState {
 class AuthController extends Notifier<AuthState> {
   @override
   AuthState build() {
-    // Initial async verification
     Future.microtask(() => checkInitialAuth());
     return const AuthState();
   }

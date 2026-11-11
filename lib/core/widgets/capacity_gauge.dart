@@ -15,8 +15,8 @@ class CapacityGauge extends StatelessWidget {
 
   Color get _fillColor {
     if (fillPercentage >= 85) return AppColors.levelCritical;
-    if (fillPercentage >= 70) return AppColors.levelWarning;
-    return AppColors.levelNormal;
+    if (fillPercentage >= 65) return AppColors.techOrange;
+    return AppColors.primaryNavy;
   }
 
   @override
@@ -25,9 +25,11 @@ class CapacityGauge extends StatelessWidget {
       return Container(
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.severityCritical.withOpacity(0.15),
+          color: AppColors.severityCritical.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(height / 2),
-          border: Border.all(color: AppColors.severityCritical.withOpacity(0.4)),
+          border: Border.all(
+            color: AppColors.severityCritical.withValues(alpha: 0.4),
+          ),
         ),
         alignment: Alignment.center,
         child: const Text(
@@ -51,7 +53,7 @@ class CapacityGauge extends StatelessWidget {
           borderRadius: BorderRadius.circular(height / 2),
           child: Container(
             height: height,
-            color: const Color(0xFFE2E8F0),
+            color: AppColors.lightBorder,
             child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: clampedFill,
@@ -63,4 +65,3 @@ class CapacityGauge extends StatelessWidget {
     );
   }
 }
-

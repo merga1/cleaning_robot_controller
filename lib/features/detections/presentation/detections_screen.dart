@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../domain/detection_model.dart';
 
-final detectionsListProvider = FutureProvider<List<GarbageDetectionModel>>((ref) async {
+final detectionsListProvider =
+    FutureProvider<List<GarbageDetectionModel>>((ref) async {
   await Future.delayed(const Duration(milliseconds: 300));
   return [
     GarbageDetectionModel(
@@ -54,6 +55,11 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
   @override
   Widget build(BuildContext context) {
     final detectionsAsync = ref.watch(detectionsListProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Scaffold(
       appBar: AppBar(
@@ -64,23 +70,24 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
           // Filter Chips (MOB-DET-002)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                FilterChip(
-                  label: const Text('All Classes'),
+                _buildFilterChip(
+                  label: 'All Classes',
                   selected: _selectedClassFilter == null,
-                  onSelected: (val) {
-                    setState(() => _selectedClassFilter = null);
-                  },
+                  isDark: isDark,
+                  onSelected: (_) =>
+                      setState(() => _selectedClassFilter = null),
                 ),
                 const SizedBox(width: 8),
                 ...DetectionClass.values.map(
                   (c) => Padding(
                     padding: const EdgeInsets.only(right: 8.0),
-                    child: FilterChip(
-                      label: Text(c.displayName),
+                    child: _buildFilterChip(
+                      label: c.displayName,
                       selected: _selectedClassFilter == c,
+                      isDark: isDark,
                       onSelected: (val) {
                         setState(() {
                           _selectedClassFilter = val ? c : null;
@@ -100,10 +107,17 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
               data: (items) {
                 final filtered = _selectedClassFilter == null
                     ? items
-                    : items.where((d) => d.detectionClass == _selectedClassFilter).toList();
+                    : items
+                        .where((d) => d.detectionClass == _selectedClassFilter)
+                        .toList();
 
                 if (filtered.isEmpty) {
-                  return const Center(child: Text('No detections recorded for this filter.'));
+                  return Center(
+                    child: Text(
+                      'No detections recorded for this filter.',
+                      style: TextStyle(color: secondaryTextColor),
+                    ),
+                  );
                 }
 
                 return ListView.builder(
@@ -115,7 +129,7 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
-                        side: const BorderSide(color: AppColors.lightBorder),
+                        side: BorderSide(color: borderColor),
                       ),
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -126,12 +140,19 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
                               width: 60,
                               height: 60,
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(10),
+                                color: AppColors.primaryNavy.withValues(
+                                  alpha: isDark ? 0.5 : 0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: borderColor,
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.image_outlined,
-                                color: Color(0xFF94A3B8),
+                              child: Icon(
+                                Icons.center_focus_strong_outlined,
+                                color: det.isUncertain
+                                    ? AppColors.severityWarning
+                                    : AppColors.techOrange,
                                 size: 28,
                               ),
                             ),
@@ -144,9 +165,10 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
                                     children: [
                                       Text(
                                         det.detectionClass.displayName,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.bold,
                                           fontSize: 15,
+                                          color: primaryTextColor,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -154,10 +176,14 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
                                       if (det.isUncertain)
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                              horizontal: 6, vertical: 2),
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
                                           decoration: BoxDecoration(
-                                            color: AppColors.severityWarning.withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(4),
+                                            color: AppColors.severityWarning
+                                                .withValues(alpha: 0.14),
+                                            borderRadius:
+                                                BorderRadius.circular(6),
                                           ),
                                           child: const Text(
                                             'Uncertain',
@@ -173,25 +199,32 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
                                   const SizedBox(height: 4),
                                   Text(
                                     'Zone: ${det.zoneName}',
-                                    style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: secondaryTextColor,
+                                    ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 6),
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
                                         'Confidence: ${(det.confidence * 100).toStringAsFixed(0)}%',
                                         style: TextStyle(
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w600,
+                                          fontWeight: FontWeight.bold,
                                           color: det.isUncertain
                                               ? AppColors.severityWarning
-                                              : AppColors.statusCleaning,
+                                              : AppColors.techOrange,
                                         ),
                                       ),
                                       Text(
                                         '${det.timestamp.hour}:${det.timestamp.minute.toString().padLeft(2, '0')}',
-                                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: secondaryTextColor,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -211,5 +244,35 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
       ),
     );
   }
-}
 
+  Widget _buildFilterChip({
+    required String label,
+    required bool selected,
+    required bool isDark,
+    required ValueChanged<bool> onSelected,
+  }) {
+    return FilterChip(
+      label: Text(
+        label,
+        style: TextStyle(
+          color: selected
+              ? AppColors.white
+              : (isDark ? AppColors.white : AppColors.primaryNavy),
+          fontWeight: selected ? FontWeight.bold : FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+      selected: selected,
+      showCheckmark: false,
+      selectedColor: AppColors.techOrange,
+      backgroundColor: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
+      side: BorderSide(
+        color: selected
+            ? AppColors.techOrange
+            : (isDark ? AppColors.darkBorder : AppColors.lightBorder),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      onSelected: onSelected,
+    );
+  }
+}

@@ -2,32 +2,40 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 class SimulatedBadge extends StatelessWidget {
-  const SimulatedBadge({super.key});
+  final bool dark;
+
+  const SimulatedBadge({super.key, this.dark = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: AppColors.simulatedBadgeBackground,
+        color: dark
+            ? AppColors.techOrange.withValues(alpha: 0.25)
+            : AppColors.simulatedBadgeBackground,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.simulatedBadgeText.withOpacity(0.4)),
+        border: Border.all(
+          color: dark
+              ? AppColors.techOrange
+              : AppColors.simulatedBadgeText.withValues(alpha: 0.4),
+        ),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
             Icons.precision_manufacturing_outlined,
             size: 13,
-            color: AppColors.simulatedBadgeText,
+            color: dark ? AppColors.techOrange : AppColors.simulatedBadgeText,
           ),
-          SizedBox(width: 4),
+          const SizedBox(width: 4),
           Text(
             'Simulated',
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: AppColors.simulatedBadgeText,
+              color: dark ? AppColors.white : AppColors.simulatedBadgeText,
               letterSpacing: 0.3,
             ),
           ),
@@ -36,4 +44,3 @@ class SimulatedBadge extends StatelessWidget {
     );
   }
 }
-

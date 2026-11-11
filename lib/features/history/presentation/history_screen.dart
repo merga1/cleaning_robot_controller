@@ -26,6 +26,12 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
     final history = [
       CleaningJobHistoryItem(
         id: 'job-9840',
@@ -69,9 +75,10 @@ class HistoryScreen extends StatelessWidget {
 
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
+            elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.lightBorder),
+              side: BorderSide(color: borderColor),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -81,16 +88,26 @@ class HistoryScreen extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        job.zones,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      Expanded(
+                        child: Text(
+                          job.zones,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: primaryTextColor,
+                          ),
+                        ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: isSuccess
-                              ? AppColors.statusCleaning.withOpacity(0.12)
-                              : AppColors.severityCritical.withOpacity(0.12),
+                              ? AppColors.successGreen.withValues(alpha: 0.12)
+                              : AppColors.severityCritical
+                                  .withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -99,7 +116,7 @@ class HistoryScreen extends StatelessWidget {
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: isSuccess
-                                ? AppColors.statusCleaning
+                                ? AppColors.successGreen
                                 : AppColors.severityCritical,
                           ),
                         ),
@@ -109,19 +126,34 @@ class HistoryScreen extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     'Robot: ${job.robotName} • Mission ID: ${job.id}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                   const Divider(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Duration: ${job.duration.inMinutes} mins',
-                          style: const TextStyle(fontSize: 13)),
-                      Text('Coverage: ${job.coverageM2} m²',
-                          style: const TextStyle(fontSize: 13)),
+                      Text(
+                        'Duration: ${job.duration.inMinutes} mins',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                      Text(
+                        'Coverage: ${job.coverageM2} m²',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: primaryTextColor,
+                        ),
+                      ),
                       Text(
                         '${job.date.month}/${job.date.day} ${job.date.hour}:${job.date.minute.toString().padLeft(2, '0')}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8)),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: secondaryTextColor,
+                        ),
                       ),
                     ],
                   ),
@@ -134,4 +166,3 @@ class HistoryScreen extends StatelessWidget {
     );
   }
 }
-

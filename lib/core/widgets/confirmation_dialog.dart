@@ -41,30 +41,70 @@ class ConfirmationDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       title: Row(
         children: [
-          Icon(
-            isDestructive ? Icons.warning_amber_rounded : Icons.info_outline,
-            color: isDestructive ? AppColors.severityCritical : AppColors.primaryBlue,
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: isDestructive
+                  ? AppColors.severityCritical.withValues(alpha: 0.12)
+                  : AppColors.primaryNavy.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isDestructive ? Icons.warning_amber_rounded : Icons.info_outline,
+              color: isDestructive
+                  ? AppColors.severityCritical
+                  : AppColors.primaryNavy,
+              size: 20,
+            ),
           ),
-          const SizedBox(width: 8),
-          Expanded(child: Text(title, style: const TextStyle(fontSize: 18))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              title,
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryNavy,
+              ),
+            ),
+          ),
         ],
       ),
       content: Text(
         message,
-        style: const TextStyle(fontSize: 14, height: 1.4),
+        style: const TextStyle(
+          fontSize: 14,
+          height: 1.4,
+          color: AppColors.secondaryText,
+        ),
       ),
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(cancelText),
+          child: Text(
+            cancelText,
+            style: const TextStyle(
+              color: AppColors.secondaryText,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: isDestructive ? AppColors.severityCritical : AppColors.primaryBlue,
-            foregroundColor: Colors.white,
-            minimumSize: const Size(90, 42),
+            backgroundColor: isDestructive
+                ? AppColors.severityCritical
+                : AppColors.techOrange,
+            foregroundColor: AppColors.white,
+            minimumSize: const Size(100, 42),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
           ),
           onPressed: () => Navigator.of(context).pop(true),
           child: Text(confirmText),
@@ -73,4 +113,3 @@ class ConfirmationDialog extends StatelessWidget {
     );
   }
 }
-

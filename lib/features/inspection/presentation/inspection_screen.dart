@@ -13,31 +13,55 @@ class InspectionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final activeRobot = ref.watch(robotsControllerProvider).activeRobot;
     final controlsState = ref.watch(controlsControllerProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Floor Cleanliness Inspection'),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(50),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.white,
+          border: Border(top: BorderSide(color: borderColor)),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.techOrange,
+                foregroundColor: AppColors.white,
+                disabledBackgroundColor:
+                    isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.search_rounded),
+              label: const Text(
+                'Trigger New Inspection',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onPressed: controlsState.isInFlight || activeRobot == null
+                  ? null
+                  : () {
+                      // MOB-INSP-001: Trigger inspection command
+                      ref
+                          .read(controlsControllerProvider.notifier)
+                          .executeCommand(
+                            robotId: activeRobot.id,
+                            type: CommandType.inspectFloor,
+                          );
+                    },
             ),
-            icon: const Icon(Icons.search_rounded),
-            label: const Text('Trigger New Inspection'),
-            onPressed: controlsState.isInFlight || activeRobot == null
-                ? null
-                : () {
-                    // MOB-INSP-001: Trigger inspection command
-                    ref.read(controlsControllerProvider.notifier).executeCommand(
-                          robotId: activeRobot.id,
-                          type: CommandType.inspectFloor,
-                        );
-                  },
           ),
         ),
       ),
@@ -48,7 +72,7 @@ class InspectionScreen extends ConsumerWidget {
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.lightBorder),
+              side: BorderSide(color: borderColor),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
@@ -57,21 +81,29 @@ class InspectionScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
+                      Text(
                         'Latest Inspection Result',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: primaryTextColor,
+                        ),
                       ),
                       if (activeRobot?.isSimulated == true)
-                        const SimulatedBadge(), // MOB-INSP-002: source real vs sim
+                        SimulatedBadge(dark: isDark), // MOB-INSP-002: source real vs sim
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   Container(
-                    width: 100,
-                    height: 100,
+                    width: 104,
+                    height: 104,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: AppColors.statusCleaning.withOpacity(0.1),
+                      color: AppColors.techOrange.withValues(alpha: 0.12),
+                      border: Border.all(
+                        color: AppColors.techOrange.withValues(alpha: 0.4),
+                        width: 2,
+                      ),
                     ),
                     alignment: Alignment.center,
                     child: const Text(
@@ -79,19 +111,23 @@ class InspectionScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.statusCleaning,
+                        color: AppColors.techOrange,
                       ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  const Text(
+                  const SizedBox(height: 14),
+                  Text(
                     'Optimal Cleanliness',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTextColor,
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Zone: Lobby & Main Hall • 0.94 Confidence',
-                    style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 13, color: secondaryTextColor),
                   ),
                 ],
               ),
@@ -100,11 +136,15 @@ class InspectionScreen extends ConsumerWidget {
           const SizedBox(height: 20),
 
           // Zone Assessment History (MOB-INSP-004)
-          const Text(
+          Text(
             'Zone Inspection History',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
 
           _historyItem(
             zoneName: 'Conference Room North',
@@ -112,6 +152,10 @@ class InspectionScreen extends ConsumerWidget {
             confidenceText: 'High (0.89)',
             timestamp: 'Today, 08:30 AM',
             isConclusive: true,
+            isDark: isDark,
+            primaryTextColor: primaryTextColor,
+            secondaryTextColor: secondaryTextColor,
+            borderColor: borderColor,
           ),
           _historyItem(
             zoneName: 'West Wing Corridor',
@@ -119,6 +163,10 @@ class InspectionScreen extends ConsumerWidget {
             confidenceText: 'Low Confidence (0.42)',
             timestamp: 'Yesterday, 04:15 PM',
             isConclusive: false, // MOB-INSP-003: inconclusive label
+            isDark: isDark,
+            primaryTextColor: primaryTextColor,
+            secondaryTextColor: secondaryTextColor,
+            borderColor: borderColor,
           ),
           _historyItem(
             zoneName: 'Executive Suites',
@@ -126,6 +174,10 @@ class InspectionScreen extends ConsumerWidget {
             confidenceText: 'High (0.97)',
             timestamp: 'Yesterday, 11:20 AM',
             isConclusive: true,
+            isDark: isDark,
+            primaryTextColor: primaryTextColor,
+            secondaryTextColor: secondaryTextColor,
+            borderColor: borderColor,
           ),
         ],
       ),
@@ -138,22 +190,36 @@ class InspectionScreen extends ConsumerWidget {
     required String confidenceText,
     required String timestamp,
     required bool isConclusive,
+    required bool isDark,
+    required Color primaryTextColor,
+    required Color secondaryTextColor,
+    required Color borderColor,
   }) {
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: AppColors.lightBorder),
+        side: BorderSide(color: borderColor),
       ),
       child: ListTile(
-        title: Text(zoneName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text('$confidenceText • $timestamp', style: const TextStyle(fontSize: 12)),
+        title: Text(
+          zoneName,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: primaryTextColor,
+          ),
+        ),
+        subtitle: Text(
+          '$confidenceText • $timestamp',
+          style: TextStyle(fontSize: 12, color: secondaryTextColor),
+        ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: isConclusive
-                ? AppColors.statusCleaning.withOpacity(0.1)
-                : AppColors.severityWarning.withOpacity(0.1),
+                ? AppColors.techOrange.withValues(alpha: 0.12)
+                : AppColors.severityWarning.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(6),
           ),
           child: Text(
@@ -161,7 +227,9 @@ class InspectionScreen extends ConsumerWidget {
             style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 13,
-              color: isConclusive ? AppColors.statusCleaning : AppColors.severityWarning,
+              color: isConclusive
+                  ? AppColors.techOrange
+                  : AppColors.severityWarning,
             ),
           ),
         ),
@@ -169,4 +237,3 @@ class InspectionScreen extends ConsumerWidget {
     );
   }
 }
-

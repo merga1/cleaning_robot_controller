@@ -13,21 +13,24 @@ class SafetyBanner extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.severityWarning.withOpacity(0.12),
+          color: AppColors.primaryNavy.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.severityWarning.withOpacity(0.3)),
+          border: Border.all(
+            color: AppColors.techOrange.withValues(alpha: 0.5),
+            width: 1,
+          ),
         ),
         child: const Row(
           children: [
-            Icon(Icons.shield_outlined, size: 16, color: AppColors.severityWarning),
+            Icon(Icons.shield_outlined, size: 16, color: AppColors.techOrange),
             SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Safety notice: App is not an emergency stop.',
                 style: TextStyle(
                   fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.severityWarning,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryNavy,
                 ),
               ),
             ),
@@ -37,18 +40,21 @@ class SafetyBanner extends StatelessWidget {
     }
 
     return Card(
-      color: AppColors.severityWarning.withOpacity(0.08),
+      color: AppColors.lightSurface,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppConstants.cardBorderRadius),
-        side: BorderSide(color: AppColors.severityWarning.withOpacity(0.25)),
+        side: BorderSide(
+          color: AppColors.techOrange.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
       ),
       child: const Padding(
         padding: EdgeInsets.all(14.0),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.shield_outlined, color: AppColors.severityWarning, size: 22),
+            Icon(Icons.shield_outlined, color: AppColors.techOrange, size: 22),
             SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -59,7 +65,7 @@ class SafetyBanner extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: AppColors.severityWarning,
+                      color: AppColors.primaryNavy,
                     ),
                   ),
                   SizedBox(height: 4),
@@ -68,7 +74,7 @@ class SafetyBanner extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       height: 1.4,
-                      color: Color(0xFF475569),
+                      color: AppColors.secondaryText,
                     ),
                   ),
                 ],
@@ -80,4 +86,3 @@ class SafetyBanner extends StatelessWidget {
     );
   }
 }
-

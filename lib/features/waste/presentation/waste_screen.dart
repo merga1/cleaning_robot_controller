@@ -10,6 +10,11 @@ class WasteScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final dashboardSummary = ref.watch(dashboardControllerProvider).summary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     final fillPercentage = dashboardSummary?.wasteFillPercentage ?? 54;
     final hasSensorFault = dashboardSummary?.wasteSensorFault ?? false;
@@ -27,13 +32,19 @@ class WasteScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.severityCritical.withOpacity(0.12),
+                color: AppColors.severityCritical.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.severityCritical.withOpacity(0.4)),
+                border: Border.all(
+                  color: AppColors.severityCritical.withValues(alpha: 0.4),
+                ),
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.warning_rounded, color: AppColors.severityCritical, size: 28),
+                  Icon(
+                    Icons.warning_rounded,
+                    color: AppColors.severityCritical,
+                    size: 28,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -50,7 +61,10 @@ class WasteScreen extends ConsumerWidget {
                         SizedBox(height: 2),
                         Text(
                           'Empty the physical waste container before dispatching new cleaning tasks.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF475569)),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.secondaryText,
+                          ),
                         ),
                       ],
                     ),
@@ -65,15 +79,19 @@ class WasteScreen extends ConsumerWidget {
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.lightBorder),
+              side: BorderSide(color: borderColor),
             ),
             child: Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
                 children: [
-                  const Text(
+                  Text(
                     'Internal Waste Bin',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTextColor,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -85,10 +103,10 @@ class WasteScreen extends ConsumerWidget {
                           ? AppColors.severityCritical
                           : fillPercentage >= 85
                               ? AppColors.levelCritical
-                              : AppColors.primaryBlue,
+                              : AppColors.techOrange,
                     ),
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 16),
                   CapacityGauge(
                     fillPercentage: fillPercentage,
                     hasSensorFault: hasSensorFault,
@@ -103,9 +121,10 @@ class WasteScreen extends ConsumerWidget {
                             : 'Normal operating range.',
                     style: TextStyle(
                       fontSize: 13,
+                      fontWeight: FontWeight.w500,
                       color: hasSensorFault
                           ? AppColors.severityCritical
-                          : const Color(0xFF64748B),
+                          : secondaryTextColor,
                     ),
                   ),
                 ],
@@ -115,38 +134,103 @@ class WasteScreen extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Reading History Timeline (MOB-WASTE-002)
-          const Text(
+          Text(
             'Recent Fill Readings',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
           ),
           const SizedBox(height: 10),
 
-          _buildReadingItem('54%', '10 mins ago', 'Routine cycle update', AppColors.levelNormal),
-          _buildReadingItem('48%', '35 mins ago', 'Routine cycle update', AppColors.levelNormal),
-          _buildReadingItem('32%', '1 hour ago', 'Routine cycle update', AppColors.levelNormal),
-          _buildReadingItem('0%', '2 hours ago', 'Manual bin dump confirmed', AppColors.primaryBlue),
+          _buildReadingItem(
+            '54%',
+            '10 mins ago',
+            'Routine cycle update',
+            AppColors.techOrange,
+            primaryTextColor,
+            secondaryTextColor,
+            borderColor,
+            isDark,
+          ),
+          _buildReadingItem(
+            '48%',
+            '35 mins ago',
+            'Routine cycle update',
+            AppColors.primaryNavy,
+            primaryTextColor,
+            secondaryTextColor,
+            borderColor,
+            isDark,
+          ),
+          _buildReadingItem(
+            '32%',
+            '1 hour ago',
+            'Routine cycle update',
+            AppColors.primaryNavy,
+            primaryTextColor,
+            secondaryTextColor,
+            borderColor,
+            isDark,
+          ),
+          _buildReadingItem(
+            '0%',
+            '2 hours ago',
+            'Manual bin dump confirmed',
+            AppColors.successGreen,
+            primaryTextColor,
+            secondaryTextColor,
+            borderColor,
+            isDark,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildReadingItem(String value, String time, String desc, Color color) {
+  Widget _buildReadingItem(
+    String value,
+    String time,
+    String desc,
+    Color color,
+    Color primaryTextColor,
+    Color secondaryTextColor,
+    Color borderColor,
+    bool isDark,
+  ) {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: borderColor),
+      ),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: isDark ? 0.3 : 0.12),
           child: Text(
             value,
             style: TextStyle(
-              color: color,
+              color: color == AppColors.primaryNavy && isDark
+                  ? AppColors.white
+                  : color,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
           ),
         ),
-        title: Text(desc, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-        trailing: Text(time, style: const TextStyle(fontSize: 12, color: Color(0xFF94A3B8))),
+        title: Text(
+          desc,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: primaryTextColor,
+          ),
+        ),
+        trailing: Text(
+          time,
+          style: TextStyle(fontSize: 12, color: secondaryTextColor),
+        ),
       ),
     );
   }

@@ -22,10 +22,11 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
   @override
   Widget build(BuildContext context) {
     final activeRobot = ref.watch(robotsControllerProvider).activeRobot;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('${activeRobot?.name ?? "Robot"} Map'),
+        title: Text('${activeRobot?.name ?? "CleanBot"} Live Map'),
         actions: [
           if (_isStale) ...[
             const Center(child: StaleBadge(label: 'Stale Pose')),
@@ -33,6 +34,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
           ],
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: 'Simulate Pose Movement',
             onPressed: () {
               setState(() {
                 _isStale = false;
@@ -56,13 +58,17 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
                 width: 360,
                 height: 480,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? AppColors.darkSurface : AppColors.white,
                   borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                    width: 1,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
+                      color: AppColors.primaryNavy.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -72,6 +78,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
                     robotY: _robotY,
                     robotHeading: _headingRadians,
                     isStale: _isStale,
+                    isDark: isDark,
                   ),
                 ),
               ),
@@ -83,23 +90,36 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
             bottom: 16,
             left: 16,
             right: 16,
-            child: Card(
-              color: Colors.white.withValues(alpha: 0.92),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: AppColors.lightBorder),
+            child: Container(
+              decoration: BoxDecoration(
+                color: (isDark ? AppColors.darkSurface : AppColors.white)
+                    .withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _legendItem(AppColors.primaryBlue, 'Robot Pose'),
-                    _legendItem(AppColors.severityCritical, 'Obstacle'),
-                    _legendItem(AppColors.statusReturning, 'Dock Station'),
+                    _legendItem(AppColors.techOrange, 'Robot Pose', isDark),
+                    _legendItem(AppColors.severityCritical, 'Obstacle', isDark),
+                    _legendItem(AppColors.primaryNavy, 'Dock Station', isDark),
                     _legendItem(
-                        AppColors.statusCleaning.withValues(alpha: 0.3),
-                        'Zone Boundary'),
+                      isDark ? AppColors.white : AppColors.primaryNavy,
+                      'Zone Boundary',
+                      isDark,
+                    ),
                   ],
                 ),
               ),
@@ -110,7 +130,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
     );
   }
 
-  Widget _legendItem(Color color, String text) {
+  Widget _legendItem(Color color, String text, bool isDark) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -120,7 +140,14 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 6),
-        Text(text, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500)),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: isDark ? AppColors.white : AppColors.primaryNavy,
+          ),
+        ),
       ],
     );
   }
@@ -131,18 +158,22 @@ class _FloorplanPainter extends CustomPainter {
   final double robotY;
   final double robotHeading;
   final bool isStale;
+  final bool isDark;
 
   _FloorplanPainter({
     required this.robotX,
     required this.robotY,
     required this.robotHeading,
     required this.isStale,
+    required this.isDark,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     final gridPaint = Paint()
-      ..color = const Color(0xFFF1F5F9)
+      ..color = isDark
+          ? AppColors.darkBorder.withValues(alpha: 0.5)
+          : const Color(0xFFF1F5F9)
       ..strokeWidth = 1.0;
 
     // Draw background grid
@@ -155,23 +186,23 @@ class _FloorplanPainter extends CustomPainter {
 
     // Outer wall
     final wallPaint = Paint()
-      ..color = const Color(0xFF334155)
+      ..color = isDark ? Colors.white70 : AppColors.primaryNavy
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4.0;
+      ..strokeWidth = 3.5;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(10, 10, size.width - 20, size.height - 20),
-        const Radius.circular(8),
+        Rect.fromLTWH(12, 12, size.width - 24, size.height - 24),
+        const Radius.circular(10),
       ),
       wallPaint,
     );
 
     // Zone boundaries (MOB-MAP-001)
     final zonePaint = Paint()
-      ..color = AppColors.statusCleaning.withValues(alpha: 0.08)
+      ..color = AppColors.primaryNavy.withValues(alpha: isDark ? 0.25 : 0.05)
       ..style = PaintingStyle.fill;
     final zoneBorderPaint = Paint()
-      ..color = AppColors.statusCleaning.withValues(alpha: 0.4)
+      ..color = AppColors.primaryNavy.withValues(alpha: isDark ? 0.6 : 0.3)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
 
@@ -187,13 +218,30 @@ class _FloorplanPainter extends CustomPainter {
     canvas.drawRect(zone3, zoneBorderPaint);
 
     // Dock Location (MOB-MAP-003)
-    final dockPaint = Paint()..color = AppColors.statusReturning;
-    canvas.drawRect(const Rect.fromLTWH(25, 30, 24, 24), dockPaint);
+    final dockPaint = Paint()..color = AppColors.primaryNavy;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(25, 30, 26, 26),
+        const Radius.circular(6),
+      ),
+      dockPaint,
+    );
+    final dockAccentPaint = Paint()
+      ..color = AppColors.techOrange
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        const Rect.fromLTWH(27, 32, 22, 22),
+        const Radius.circular(4),
+      ),
+      dockAccentPaint,
+    );
 
     // Planned Path (MOB-MAP-003)
     final pathPaint = Paint()
-      ..color = AppColors.primaryBlue.withValues(alpha: 0.4)
-      ..strokeWidth = 2.0
+      ..color = AppColors.techOrange.withValues(alpha: 0.5)
+      ..strokeWidth = 2.5
       ..style = PaintingStyle.stroke;
     final path = Path()
       ..moveTo(40, 50)
@@ -207,9 +255,17 @@ class _FloorplanPainter extends CustomPainter {
 
     // Robot Heading & Position (MOB-MAP-002, MOB-MAP-005)
     final robotPaint = Paint()
-      ..color = isStale ? const Color(0xFF94A3B8) : AppColors.primaryBlue;
+      ..color = isStale ? AppColors.secondaryText : AppColors.techOrange;
 
+    // Robot body circle
     canvas.drawCircle(Offset(robotX, robotY), 14, robotPaint);
+
+    // Robot outer ring
+    final ringPaint = Paint()
+      ..color = AppColors.primaryNavy.withValues(alpha: 0.3)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    canvas.drawCircle(Offset(robotX, robotY), 16, ringPaint);
 
     // Heading Arrow
     const arrowLength = 22.0;
@@ -217,11 +273,15 @@ class _FloorplanPainter extends CustomPainter {
     final headingY = robotY + arrowLength * math.sin(robotHeading);
 
     final arrowPaint = Paint()
-      ..color = Colors.white
+      ..color = AppColors.white
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawLine(Offset(robotX, robotY), Offset(headingX, headingY), arrowPaint);
+    canvas.drawLine(
+      Offset(robotX, robotY),
+      Offset(headingX, headingY),
+      arrowPaint,
+    );
   }
 
   @override
@@ -229,6 +289,7 @@ class _FloorplanPainter extends CustomPainter {
     return oldDelegate.robotX != robotX ||
         oldDelegate.robotY != robotY ||
         oldDelegate.robotHeading != robotHeading ||
-        oldDelegate.isStale != isStale;
+        oldDelegate.isStale != isStale ||
+        oldDelegate.isDark != isDark;
   }
 }

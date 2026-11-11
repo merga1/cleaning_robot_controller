@@ -19,13 +19,11 @@ class ConnectionBanner extends StatelessWidget {
     }
 
     final isConnecting = connectionState == WebSocketConnectionState.connecting;
-    final bgColor = isConnecting
-        ? AppColors.severityWarning.withOpacity(0.9)
-        : AppColors.severityCritical.withOpacity(0.9);
+    final bgColor = isConnecting ? AppColors.techOrange : AppColors.deepNavy;
 
     final message = isConnecting
-        ? 'Reconnecting to real-time service…'
-        : 'Real-time connection lost. Showing cached data.';
+        ? 'Reconnecting to CleanBot real-time telemetry…'
+        : 'Real-time telemetry paused. Showing cached state.';
 
     return Material(
       color: bgColor,
@@ -37,7 +35,7 @@ class ConnectionBanner extends StatelessWidget {
             children: [
               Icon(
                 isConnecting ? Icons.sync : Icons.cloud_off_outlined,
-                color: Colors.white,
+                color: AppColors.white,
                 size: 16,
               ),
               const SizedBox(width: 8),
@@ -45,9 +43,9 @@ class ConnectionBanner extends StatelessWidget {
                 child: Text(
                   message,
                   style: const TextStyle(
-                    color: Colors.white,
+                    color: AppColors.white,
                     fontSize: 12,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -55,16 +53,16 @@ class ConnectionBanner extends StatelessWidget {
                 GestureDetector(
                   onTap: onRetry,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(4),
+                      color: AppColors.techOrange,
+                      borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
                       'Retry',
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
+                        color: AppColors.white,
+                        fontSize: 11,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -77,4 +75,3 @@ class ConnectionBanner extends StatelessWidget {
     );
   }
 }
-

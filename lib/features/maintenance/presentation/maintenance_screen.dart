@@ -14,6 +14,9 @@ class MaintenanceScreen extends ConsumerWidget {
     final activeRobot = ref.watch(robotsControllerProvider).activeRobot;
     final authUser = ref.watch(authControllerProvider).user;
     final controlsState = ref.watch(controlsControllerProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Scaffold(
       appBar: AppBar(
@@ -31,7 +34,9 @@ class MaintenanceScreen extends ConsumerWidget {
                           type: CommandType.requestStatusRefresh,
                         );
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Status refresh command submitted.')),
+                      const SnackBar(
+                        content: Text('Status refresh command submitted.'),
+                      ),
                     );
                   },
           ),
@@ -44,44 +49,99 @@ class MaintenanceScreen extends ConsumerWidget {
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.lightBorder),
+              side: BorderSide(color: borderColor),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Hardware Subsystem Health',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryNavy.withValues(
+                            alpha: isDark ? 0.5 : 0.08,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.memory_rounded,
+                          size: 18,
+                          color: AppColors.techOrange,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Hardware Subsystem Health',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: primaryTextColor,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _subsystemStatus('LiDAR SLAM Sensor', 'Nominal', AppColors.statusCleaning),
-                  _subsystemStatus('Optical Flow Sensor', 'Nominal', AppColors.statusCleaning),
-                  _subsystemStatus('Suction Motor Turbine', 'Nominal', AppColors.statusCleaning),
-                  _subsystemStatus('Waste Container Level', 'Nominal', AppColors.statusCleaning),
-                  _subsystemStatus('Brush Roller Actuator', 'Maintenance Due Soon', AppColors.severityWarning),
+                  const SizedBox(height: 14),
+                  _subsystemStatus(
+                    'LiDAR SLAM Sensor',
+                    'Nominal',
+                    AppColors.successGreen,
+                    primaryTextColor,
+                  ),
+                  _subsystemStatus(
+                    'Optical Flow Sensor',
+                    'Nominal',
+                    AppColors.successGreen,
+                    primaryTextColor,
+                  ),
+                  _subsystemStatus(
+                    'Suction Motor Turbine',
+                    'Nominal',
+                    AppColors.successGreen,
+                    primaryTextColor,
+                  ),
+                  _subsystemStatus(
+                    'Waste Container Level',
+                    'Nominal',
+                    AppColors.successGreen,
+                    primaryTextColor,
+                  ),
+                  _subsystemStatus(
+                    'Brush Roller Actuator',
+                    'Maintenance Due Soon',
+                    AppColors.techOrange,
+                    primaryTextColor,
+                  ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
           // Maintenance Records & Due Items (MOB-MAINT-002)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Service Records',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
               ),
-              if (authUser?.role.canManageUsers == true) // MOB-MAINT-003: Admin add record
+              if (authUser?.role.canManageUsers ==
+                  true) // MOB-MAINT-003: Admin add record
                 TextButton.icon(
                   icon: const Icon(Icons.add, size: 18),
                   label: const Text('Log Service'),
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Log Service dialog opened (Admin only).')),
+                      const SnackBar(
+                        content: Text('Log Service dialog opened (Admin only).'),
+                      ),
                     );
                   },
                 ),
@@ -94,31 +154,52 @@ class MaintenanceScreen extends ConsumerWidget {
             'Overdue by 3 days',
             AppColors.severityCritical,
             Icons.filter_alt_outlined,
+            primaryTextColor,
+            borderColor,
+            isDark,
           ),
           _serviceRecordItem(
             'Wheel Gear Lubrication',
             'Due in 14 days',
-            AppColors.severityWarning,
+            AppColors.techOrange,
             Icons.build_circle_outlined,
+            primaryTextColor,
+            borderColor,
+            isDark,
           ),
           _serviceRecordItem(
             'Battery Calibration Cycle',
             'Completed 1 week ago',
-            AppColors.statusCleaning,
+            AppColors.successGreen,
             Icons.battery_charging_full,
+            primaryTextColor,
+            borderColor,
+            isDark,
           ),
         ],
       ),
     );
   }
 
-  Widget _subsystemStatus(String name, String status, Color color) {
+  Widget _subsystemStatus(
+    String name,
+    String status,
+    Color color,
+    Color primaryTextColor,
+  ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6.0),
+      padding: const EdgeInsets.symmetric(vertical: 7.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(name, style: const TextStyle(fontSize: 14)),
+          Text(
+            name,
+            style: TextStyle(
+              fontSize: 14,
+              color: primaryTextColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
           Row(
             children: [
               Container(
@@ -142,15 +223,53 @@ class MaintenanceScreen extends ConsumerWidget {
     );
   }
 
-  Widget _serviceRecordItem(String title, String status, Color statusColor, IconData icon) {
+  Widget _serviceRecordItem(
+    String title,
+    String status,
+    Color statusColor,
+    IconData icon,
+    Color primaryTextColor,
+    Color borderColor,
+    bool isDark,
+  ) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(color: borderColor),
+      ),
       child: ListTile(
-        leading: Icon(icon, color: AppColors.primaryBlue),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        subtitle: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w500)),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.primaryNavy.withValues(
+              alpha: isDark ? 0.5 : 0.08,
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            color: isDark ? AppColors.techOrange : AppColors.primaryNavy,
+            size: 22,
+          ),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: primaryTextColor,
+          ),
+        ),
+        subtitle: Text(
+          status,
+          style: TextStyle(
+            color: statusColor,
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
       ),
     );
   }
 }
-

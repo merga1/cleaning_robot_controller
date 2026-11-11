@@ -54,7 +54,8 @@ class ZoneSelectionScreen extends ConsumerStatefulWidget {
   const ZoneSelectionScreen({super.key});
 
   @override
-  ConsumerState<ZoneSelectionScreen> createState() => _ZoneSelectionScreenState();
+  ConsumerState<ZoneSelectionScreen> createState() =>
+      _ZoneSelectionScreenState();
 }
 
 class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
@@ -64,49 +65,73 @@ class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
   Widget build(BuildContext context) {
     final zonesAsync = ref.watch(zonesListProvider);
     final activeRobot = ref.watch(robotsControllerProvider).activeRobot;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Select Cleaning Zones'),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
-              foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(50),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.darkSurface : AppColors.white,
+          border: Border(
+            top: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             ),
-            onPressed: _selectedZoneIds.isEmpty || activeRobot == null
-                ? null
-                : () async {
-                    // MOB-ZONE-004: Summary and confirmation before starting job
-                    final confirmed = await ConfirmationDialog.show(
-                      context,
-                      title: 'Start Cleaning Run',
-                      message:
-                          'Dispatch ${activeRobot.name} to clean ${_selectedZoneIds.length} selected zone(s)?',
-                      confirmText: 'Dispatch Robot',
-                    );
+          ),
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.techOrange,
+                foregroundColor: AppColors.white,
+                disabledBackgroundColor:
+                    isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                minimumSize: const Size.fromHeight(50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.cleaning_services_rounded, size: 20),
+              onPressed: _selectedZoneIds.isEmpty || activeRobot == null
+                  ? null
+                  : () async {
+                      // MOB-ZONE-004: Summary and confirmation before starting job
+                      final confirmed = await ConfirmationDialog.show(
+                        context,
+                        title: 'Start Cleaning Run',
+                        message:
+                            'Dispatch ${activeRobot.name} to clean ${_selectedZoneIds.length} selected zone(s)?',
+                        confirmText: 'Dispatch Robot',
+                      );
 
-                    if (confirmed && mounted) {
-                      await ref
-                          .read(controlsControllerProvider.notifier)
-                          .executeCommand(
-                            robotId: activeRobot.id,
-                            type: CommandType.startCleaning,
-                            parameters: {'zones': _selectedZoneIds.toList()},
-                          );
-                      if (context.mounted) {
-                        context.go('/dashboard');
+                      if (confirmed && mounted) {
+                        await ref
+                            .read(controlsControllerProvider.notifier)
+                            .executeCommand(
+                              robotId: activeRobot.id,
+                              type: CommandType.startCleaning,
+                              parameters: {'zones': _selectedZoneIds.toList()},
+                            );
+                        if (context.mounted) {
+                          context.go('/dashboard');
+                        }
                       }
-                    }
-                  },
-            child: Text(
-              _selectedZoneIds.isEmpty
-                  ? 'Select Zones to Clean'
-                  : 'Start Cleaning (${_selectedZoneIds.length} Zones)',
+                    },
+              label: Text(
+                _selectedZoneIds.isEmpty
+                    ? 'Select Zones to Clean'
+                    : 'Start Cleaning (${_selectedZoneIds.length} Zones)',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ),
@@ -127,13 +152,22 @@ class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                   side: BorderSide(
-                    color: isSelected ? AppColors.primaryBlue : AppColors.lightBorder,
+                    color: isSelected
+                        ? AppColors.techOrange
+                        : (isDark
+                            ? AppColors.darkBorder
+                            : AppColors.lightBorder),
                     width: isSelected ? 2 : 1,
                   ),
                 ),
                 margin: const EdgeInsets.only(bottom: 12),
                 child: CheckboxListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  activeColor: AppColors.techOrange,
+                  checkColor: AppColors.white,
                   value: isSelected,
                   enabled: zone.isAvailable, // MOB-ZONE-003
                   onChanged: (bool? checked) {
@@ -153,20 +187,31 @@ class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
-                            color: zone.isAvailable ? null : const Color(0xFF94A3B8),
+                            color: zone.isAvailable
+                                ? primaryTextColor
+                                : secondaryTextColor,
                           ),
                         ),
                       ),
                       if (!zone.isAvailable)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
+                            color: isDark
+                                ? AppColors.darkBackground
+                                : const Color(0xFFF1F5F9),
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Text(
+                          child: Text(
                             'Unavailable',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: secondaryTextColor,
+                            ),
                           ),
                         ),
                     ],
@@ -175,21 +220,36 @@ class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 4),
-                      Text('Area: ${zone.areaM2} m²'),
-                      if (zone.lastCleanedAt != null)
+                      Text(
+                        'Area: ${zone.areaM2} m²',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: primaryTextColor.withValues(alpha: 0.85),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      if (zone.lastCleanedAt != null) ...[
+                        const SizedBox(height: 2),
                         Text(
                           'Last cleaned: ${zone.lastCleanedAt!.hour}:${zone.lastCleanedAt!.minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: secondaryTextColor,
+                          ),
                         ),
-                      if (!zone.isAvailable && zone.unavailabilityReason != null)
+                      ],
+                      if (!zone.isAvailable &&
+                          zone.unavailabilityReason != null) ...[
+                        const SizedBox(height: 4),
                         Text(
                           'Reason: ${zone.unavailabilityReason}',
                           style: const TextStyle(
                             fontSize: 12,
-                            color: AppColors.severityWarning,
-                            fontWeight: FontWeight.w500,
+                            color: AppColors.techOrange,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -201,4 +261,3 @@ class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
     );
   }
 }
-

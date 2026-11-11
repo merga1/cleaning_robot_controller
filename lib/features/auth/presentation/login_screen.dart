@@ -14,7 +14,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController(text: 'operator@cleanbot.io');
+  final _usernameController =
+      TextEditingController(text: 'operator@cleanbot.io');
   final _passwordController = TextEditingController(text: 'CleanBot#2026');
   bool _obscurePassword = true;
 
@@ -43,43 +44,96 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
+      backgroundColor: AppColors.lightBackground,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
             child: Form(
               key: _formKey,
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App Branding
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(
-                      Icons.cleaning_services_rounded,
-                      size: 40,
-                      color: AppColors.primaryBlue,
+                  // EAII Brand Header & Robot Emblem
+                  Center(
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          width: 86,
+                          height: 86,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                AppColors.primaryNavy,
+                                AppColors.deepNavy,
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(24),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryNavy.withValues(alpha: 0.18),
+                                blurRadius: 18,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Futuristic Orange Accent Ring
+                        Container(
+                          width: 76,
+                          height: 76,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: AppColors.techOrange.withValues(alpha: 0.8),
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Icon(
+                            Icons.smart_toy_rounded,
+                            size: 40,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 20),
+
+                  // Official Institution & App Title
                   const Text(
-                    'CleanBot Operator',
+                    'ETHIOPIAN ARTIFICIAL INTELLIGENCE INSTITUTE',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.techOrange,
+                      letterSpacing: 1.2,
                     ),
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Sign in to monitor and control robot cleaning fleets.',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                    'Cleaning Robot Controller',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryNavy,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Autonomous fleet operation, floor telemetry & zone control',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.secondaryText,
+                    ),
                   ),
                   const SizedBox(height: 24),
 
@@ -92,16 +146,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.severityCritical.withOpacity(0.1),
+                        color: AppColors.severityCritical.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        authState.errorMessage!,
-                        style: const TextStyle(
-                          color: AppColors.severityCritical,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                        border: Border.all(
+                          color: AppColors.severityCritical.withValues(alpha: 0.3),
                         ),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: AppColors.severityCritical,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              authState.errorMessage!,
+                              style: const TextStyle(
+                                color: AppColors.severityCritical,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -110,16 +179,38 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // Username / Email Field (MOB-AUTH-007)
                   TextFormField(
                     controller: _usernameController,
+                    style: const TextStyle(
+                      color: AppColors.primaryNavy,
+                      fontWeight: FontWeight.w600,
+                    ),
                     decoration: InputDecoration(
-                      labelText: 'Username or Email',
-                      prefixIcon: const Icon(Icons.person_outline),
-                      border: OutlineInputBorder(
+                      labelText: 'Operator ID or Email',
+                      labelStyle: const TextStyle(color: AppColors.secondaryText),
+                      prefixIcon: const Icon(
+                        Icons.badge_outlined,
+                        color: AppColors.primaryNavy,
+                      ),
+                      filled: true,
+                      fillColor: AppColors.white,
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.lightBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryNavy,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.severityCritical),
                       ),
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
-                        return 'Please enter your username or email';
+                        return 'Please enter your operator ID or email';
                       }
                       return null;
                     },
@@ -130,21 +221,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
+                    style: const TextStyle(
+                      color: AppColors.primaryNavy,
+                      fontWeight: FontWeight.w600,
+                    ),
                     decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      labelText: 'Security Password',
+                      labelStyle: const TextStyle(color: AppColors.secondaryText),
+                      prefixIcon: const Icon(
+                        Icons.lock_outline,
+                        color: AppColors.primaryNavy,
+                      ),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: AppColors.secondaryText,
+                        ),
                         onPressed: () {
                           setState(() {
                             _obscurePassword = !_obscurePassword;
                           });
                         },
                       ),
-                      border: OutlineInputBorder(
+                      filled: true,
+                      fillColor: AppColors.white,
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.lightBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: AppColors.primaryNavy,
+                          width: 2,
+                        ),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: AppColors.severityCritical),
                       ),
                     ),
                     validator: (val) {
@@ -159,12 +275,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Sign In Action Button
+                  // Technology Orange Sign In Action Button
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AppColors.techOrange,
+                      foregroundColor: AppColors.white,
                       minimumSize: const Size.fromHeight(50),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: authState.isLoading ? null : _submit,
                     child: authState.isLoading
@@ -172,50 +292,102 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: AppColors.white,
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text('Sign In'),
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.login_rounded, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Sign In to Console',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Role Hint Helper for Demo & Evaluation
+                  // Test Role Presets
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.lightBorder),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          'Test Role Credentials:',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF475569),
-                          ),
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.switch_account_outlined,
+                              size: 16,
+                              color: AppColors.primaryNavy,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Quick Role Presets:',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryNavy,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           children: [
                             ActionChip(
-                              label: const Text('Operator', style: TextStyle(fontSize: 11)),
+                              backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.06),
+                              side: const BorderSide(color: AppColors.lightBorder),
+                              label: const Text(
+                                'Operator',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primaryNavy,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               onPressed: () {
                                 _usernameController.text = 'operator@cleanbot.io';
                               },
                             ),
                             ActionChip(
-                              label: const Text('Admin', style: TextStyle(fontSize: 11)),
+                              backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.06),
+                              side: const BorderSide(color: AppColors.lightBorder),
+                              label: const Text(
+                                'Admin',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primaryNavy,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               onPressed: () {
                                 _usernameController.text = 'admin@cleanbot.io';
                               },
                             ),
                             ActionChip(
-                              label: const Text('Read-Only', style: TextStyle(fontSize: 11)),
+                              backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.06),
+                              side: const BorderSide(color: AppColors.lightBorder),
+                              label: const Text(
+                                'Read-Only',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.primaryNavy,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               onPressed: () {
                                 _usernameController.text = 'readonly@cleanbot.io';
                               },
@@ -234,4 +406,3 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
-

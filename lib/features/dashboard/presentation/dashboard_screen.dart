@@ -23,25 +23,35 @@ class DashboardScreen extends ConsumerWidget {
     final robotsState = ref.watch(robotsControllerProvider);
     final dashboardState = ref.watch(dashboardControllerProvider);
     final activeRobot = robotsState.activeRobot;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
+        titleSpacing: 16,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Text(
-                  activeRobot?.name ?? 'CleanBot',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                Flexible(
+                  child: Text(
+                    activeRobot?.name ?? 'CleanBot Console',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: AppColors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 if (activeRobot?.isSimulated == true) ...[
                   const SizedBox(width: 8),
-                  const SimulatedBadge(), // MOB-DASH-009
+                  const SimulatedBadge(dark: true), // MOB-DASH-009
                 ],
               ],
             ),
-            if (activeRobot != null)
+            if (activeRobot != null) ...[
+              const SizedBox(height: 2),
               Row(
                 children: [
                   Container(
@@ -49,37 +59,49 @@ class DashboardScreen extends ConsumerWidget {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: activeRobot.connectionState == RobotConnectionState.online
+                      color: activeRobot.connectionState ==
+                              RobotConnectionState.online
                           ? AppColors.levelNormal
                           : AppColors.levelCritical,
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    '${activeRobot.connectionState.displayName} • ${activeRobot.status.displayName}',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  Flexible(
+                    child: Text(
+                      '${activeRobot.connectionState.displayName} • ${activeRobot.status.displayName}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
+            ],
           ],
         ),
         actions: [
           if (activeRobot != null) ...[
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: BatteryIndicator(
-                levelPercentage: activeRobot.batteryLevel,
-                isCharging: activeRobot.isCharging,
-              ), // MOB-DASH-002
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.only(right: 4.0),
+                child: BatteryIndicator(
+                  levelPercentage: activeRobot.batteryLevel,
+                  isCharging: activeRobot.isCharging,
+                  isAppBar: true,
+                ), // MOB-DASH-002
+              ),
             ),
           ],
           IconButton(
-            icon: const Icon(Icons.swap_horiz_rounded),
+            icon: const Icon(Icons.swap_horiz_rounded, color: AppColors.white),
             tooltip: 'Switch Robot',
             onPressed: () => context.push('/robots'),
           ),
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.settings_outlined, color: AppColors.white),
             tooltip: 'Settings',
             onPressed: () => context.push('/settings'),
           ),
@@ -90,15 +112,17 @@ class DashboardScreen extends ConsumerWidget {
           // MOB-RT-005: Live WebSocket Connection Banner
           ConnectionBanner(
             connectionState: dashboardState.connectionState,
-            onRetry: () =>
-                ref.read(webSocketClientProvider).connect(),
+            onRetry: () => ref.read(webSocketClientProvider).connect(),
           ),
 
           Expanded(
             child: RefreshIndicator(
+              color: AppColors.techOrange,
               onRefresh: () async {
                 await ref.read(robotsControllerProvider.notifier).loadRobots();
-                await ref.read(dashboardControllerProvider.notifier).loadDashboardData();
+                await ref
+                    .read(dashboardControllerProvider.notifier)
+                    .loadDashboardData();
               },
               child: ListView(
                 padding: const EdgeInsets.all(16.0),
@@ -125,7 +149,10 @@ class DashboardScreen extends ConsumerWidget {
                           Expanded(
                             child: Text(
                               'Updates exceeded freshness threshold. Refresh to re-sync.',
-                              style: TextStyle(fontSize: 12, color: AppColors.staleBadgeText),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.staleBadgeText,
+                              ),
                             ),
                           ),
                         ],
@@ -135,7 +162,11 @@ class DashboardScreen extends ConsumerWidget {
                   ],
 
                   // Current Active Job Card (MOB-DASH-004, MOB-PROG-001)
-                  _buildActiveJobCard(context, dashboardState.summary?.activeJob),
+                  _buildActiveJobCard(
+                    context,
+                    dashboardState.summary?.activeJob,
+                    isDark,
+                  ),
                   const SizedBox(height: 12),
 
                   // Telemetry Metrics Grid (Waste Container & Cleanliness)
@@ -147,6 +178,7 @@ class DashboardScreen extends ConsumerWidget {
                           context,
                           dashboardState.summary?.wasteFillPercentage ?? 0,
                           dashboardState.summary?.wasteSensorFault ?? false,
+                          isDark,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -155,6 +187,7 @@ class DashboardScreen extends ConsumerWidget {
                         child: _buildCleanlinessCard(
                           context,
                           dashboardState.summary?.latestCleanliness,
+                          isDark,
                         ),
                       ),
                     ],
@@ -168,7 +201,7 @@ class DashboardScreen extends ConsumerWidget {
                   ],
 
                   // Quick Navigation Shortcuts
-                  _buildQuickLinks(context),
+                  _buildQuickLinks(context, isDark),
                 ],
               ),
             ),
@@ -178,33 +211,67 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildActiveJobCard(BuildContext context, ActiveJobSummary? job) {
+  Widget _buildActiveJobCard(
+    BuildContext context,
+    ActiveJobSummary? job,
+    bool isDark,
+  ) {
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+
     if (job == null) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              const Icon(Icons.bedtime_outlined, color: Color(0xFF64748B), size: 28),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryNavy.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.bedtime_outlined,
+                  color: isDark ? Colors.white70 : AppColors.primaryNavy,
+                  size: 24,
+                ),
+              ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'No Active Cleaning Job',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: primaryTextColor,
+                      ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Select a zone to start cleaning operations.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: secondaryTextColor,
+                      ),
                     ),
                   ],
                 ),
               ),
-              OutlinedButton(
+              const SizedBox(width: 8),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.techOrange,
+                  foregroundColor: AppColors.white,
+                  minimumSize: const Size(84, 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                ),
                 onPressed: () => context.push('/zones'),
-                child: const Text('Zones'),
+                child: const Text('Zones', style: TextStyle(fontSize: 13)),
               ),
             ],
           ),
@@ -224,34 +291,65 @@ class DashboardScreen extends ConsumerWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.cleaning_services, color: AppColors.statusCleaning, size: 20),
-                      const SizedBox(width: 8),
-                      Text(
-                        job.zoneName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                    ],
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: AppColors.techOrange.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.cleaning_services_rounded,
+                            color: AppColors.techOrange,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            job.zoneName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: primaryTextColor,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text(
-                    '${job.progressPercentage.toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: AppColors.primaryBlue,
+                  const SizedBox(width: 8),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.techOrange.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${job.progressPercentage.toStringAsFixed(1)}%',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: AppColors.techOrange,
+                      ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               ClipRRect(
                 borderRadius: BorderRadius.circular(6),
                 child: LinearProgressIndicator(
                   value: job.progressPercentage / 100,
                   minHeight: 8,
-                  backgroundColor: const Color(0xFFE2E8F0),
-                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.statusCleaning),
+                  backgroundColor:
+                      isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                  valueColor:
+                      const AlwaysStoppedAnimation<Color>(AppColors.techOrange),
                 ),
               ),
               const SizedBox(height: 12),
@@ -260,18 +358,18 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   Text(
                     'Coverage: ${job.coverageAreaM2.toStringAsFixed(1)} m²',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                   Text(
                     'Elapsed: ${job.elapsedTime.inMinutes}m ${job.elapsedTime.inSeconds % 60}s',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                   const Text(
                     'Details →',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryBlue,
+                      color: AppColors.techOrange,
                     ),
                   ),
                 ],
@@ -287,7 +385,12 @@ class DashboardScreen extends ConsumerWidget {
     BuildContext context,
     int fillPercentage,
     bool hasSensorFault,
+    bool isDark,
   ) {
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+
     return InkWell(
       onTap: () => context.push('/waste'),
       borderRadius: BorderRadius.circular(16),
@@ -297,14 +400,22 @@ class DashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Waste Fill',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: primaryTextColor,
+                    ),
                   ),
-                  Icon(Icons.delete_outline, size: 18, color: Color(0xFF64748B)),
+                  Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: secondaryTextColor,
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
@@ -317,7 +428,7 @@ class DashboardScreen extends ConsumerWidget {
                       ? AppColors.severityCritical
                       : fillPercentage >= 85
                           ? AppColors.levelCritical
-                          : AppColors.primaryDark,
+                          : primaryTextColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -335,7 +446,12 @@ class DashboardScreen extends ConsumerWidget {
   Widget _buildCleanlinessCard(
     BuildContext context,
     CleanlinessSummary? cleanliness,
+    bool isDark,
   ) {
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+
     return InkWell(
       onTap: () => context.push('/inspection'),
       borderRadius: BorderRadius.circular(16),
@@ -345,25 +461,33 @@ class DashboardScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     'Cleanliness',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: primaryTextColor,
+                    ),
                   ),
-                  Icon(Icons.auto_awesome_outlined, size: 18, color: Color(0xFF64748B)),
+                  Icon(
+                    Icons.auto_awesome_outlined,
+                    size: 18,
+                    color: secondaryTextColor,
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
               // MOB-DASH-008: Never show "clean" without valid assessment
               if (cleanliness == null)
-                const Text(
+                Text(
                   'No assessment',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF94A3B8),
+                    color: secondaryTextColor,
                   ),
                 )
               else ...[
@@ -376,13 +500,13 @@ class DashboardScreen extends ConsumerWidget {
                     fontWeight: FontWeight.bold,
                     color: cleanliness.isInconclusive
                         ? AppColors.severityWarning
-                        : AppColors.statusCleaning,
+                        : AppColors.techOrange,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Conf: ${(cleanliness.confidence * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  style: TextStyle(fontSize: 11, color: secondaryTextColor),
                 ),
               ],
             ],
@@ -392,26 +516,68 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickLinks(BuildContext context) {
+  Widget _buildQuickLinks(BuildContext context, bool isDark) {
     final links = [
-      {'title': 'Zones & Planning', 'icon': Icons.map_outlined, 'path': '/zones'},
-      {'title': 'Live Map', 'icon': Icons.navigation_outlined, 'path': '/map'},
-      {'title': 'Mission Progress', 'icon': Icons.insights_outlined, 'path': '/progress'},
-      {'title': 'Garbage Detections', 'icon': Icons.scatter_plot_outlined, 'path': '/detections'},
-      {'title': 'Alerts & Notifications', 'icon': Icons.notifications_none, 'path': '/notifications'},
-      {'title': 'Cleaning History', 'icon': Icons.history, 'path': '/history'},
-      {'title': 'Reports & Analytics', 'icon': Icons.bar_chart_outlined, 'path': '/reports'},
-      {'title': 'Diagnostics & Health', 'icon': Icons.build_outlined, 'path': '/maintenance'},
+      {
+        'title': 'Zones & Planning',
+        'icon': Icons.map_outlined,
+        'path': '/zones',
+      },
+      {
+        'title': 'Live Map',
+        'icon': Icons.navigation_outlined,
+        'path': '/map',
+      },
+      {
+        'title': 'Mission Progress',
+        'icon': Icons.insights_outlined,
+        'path': '/progress',
+      },
+      {
+        'title': 'Garbage Detections',
+        'icon': Icons.scatter_plot_outlined,
+        'path': '/detections',
+      },
+      {
+        'title': 'Alerts & Notifications',
+        'icon': Icons.notifications_none,
+        'path': '/notifications',
+      },
+      {
+        'title': 'Cleaning History',
+        'icon': Icons.history,
+        'path': '/history',
+      },
+      {
+        'title': 'Reports & Analytics',
+        'icon': Icons.bar_chart_outlined,
+        'path': '/reports',
+      },
+      {
+        'title': 'Diagnostics & Health',
+        'icon': Icons.build_outlined,
+        'path': '/maintenance',
+      },
     ];
+
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final tileBg = isDark ? AppColors.darkSurface : AppColors.white;
+    final tileBorder = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'System Features',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 10),
+          child: Text(
+            'System Features',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
+          ),
         ),
-        const SizedBox(height: 8),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -424,21 +590,48 @@ class DashboardScreen extends ConsumerWidget {
           itemCount: links.length,
           itemBuilder: (context, index) {
             final link = links[index];
-            return OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                alignment: Alignment.centerLeft,
+            return InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => context.push(link['path'] as String),
+              child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
-                shape: RoundedRectangleBorder(
+                decoration: BoxDecoration(
+                  color: tileBg,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: tileBorder, width: 1),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryNavy.withValues(
+                          alpha: isDark ? 0.5 : 0.08,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        link['icon'] as IconData,
+                        size: 18,
+                        color: AppColors.techOrange,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        link['title'] as String,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: primaryTextColor,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              icon: Icon(link['icon'] as IconData, size: 20, color: AppColors.primaryBlue),
-              label: Text(
-                link['title'] as String,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                overflow: TextOverflow.ellipsis,
-              ),
-              onPressed: () => context.push(link['path'] as String),
             );
           },
         ),

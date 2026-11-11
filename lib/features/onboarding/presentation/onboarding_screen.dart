@@ -18,22 +18,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   final List<Map<String, dynamic>> _pages = [
     {
+      'tag': 'EAII AUTONOMOUS PLATFORM',
       'title': 'Autonomous Fleet Oversight',
       'subtitle':
-          'Monitor real-time positions, cleaning coverage, battery, and container metrics with precision.',
+          'Monitor real-time positions, cleaning coverage, battery telemetry, and waste container capacity with precision.',
       'icon': Icons.precision_manufacturing_outlined,
     },
     {
+      'tag': 'PRECISION ROBOTICS',
       'title': 'Intelligent Zone Cleaning',
       'subtitle':
-          'Command robots to execute targeted multi-zone cleaning runs, inspect cleanliness, and dock seamlessly.',
+          'Command autonomous robots to execute targeted multi-zone cleaning missions, inspect cleanliness, and dock automatically.',
       'icon': Icons.map_outlined,
     },
     {
+      'tag': 'SAFETY PROTOCOL',
       'title': 'Operational Safety & Compliance',
       'subtitle':
-          'Safety-first operations. Motion safety is handled by local hardware controllers. Always ensure paths are clear.',
-      'icon': Icons.health_and_safety_outlined,
+          'Safety-first autonomous execution. Hardware collision controllers are local and authoritative. Always supervise working zones.',
+      'icon': Icons.shield_outlined,
     },
   ];
 
@@ -48,15 +51,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.lightBackground,
       body: SafeArea(
         child: Column(
           children: [
-            // Skip Button (MOB-ONB-002)
-            Align(
-              alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: _finishOnboarding,
-                child: const Text('Skip'),
+            // Top Header with Institution branding and Skip action
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryNavy,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.smart_toy_rounded,
+                          color: AppColors.techOrange,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'EAII ROBOTICS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.primaryNavy,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                  TextButton(
+                    onPressed: _finishOnboarding,
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(
+                        color: AppColors.secondaryText,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -75,25 +116,51 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 90,
-                          height: 90,
+                          width: 100,
+                          height: 100,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryLight,
-                            shape: BoxShape.circle,
+                            color: AppColors.primaryNavy,
+                            borderRadius: BorderRadius.circular(28),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.primaryNavy.withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 8),
+                              ),
+                            ],
                           ),
                           child: Icon(
                             page['icon'] as IconData,
-                            size: 48,
-                            color: AppColors.primaryBlue,
+                            size: 50,
+                            color: AppColors.techOrange,
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 28),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.techOrange.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            page['tag'] as String,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.techOrange,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Text(
                           page['title'] as String,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
+                            color: AppColors.primaryNavy,
                             letterSpacing: -0.3,
                           ),
                         ),
@@ -104,7 +171,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           style: const TextStyle(
                             fontSize: 14,
                             height: 1.5,
-                            color: Color(0xFF64748B),
+                            color: AppColors.secondaryText,
                           ),
                         ),
                         if (index == 2) ...[
@@ -127,14 +194,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   Row(
                     children: List.generate(
                       _pages.length,
-                      (i) => Container(
+                      (i) => AnimatedContainer(
+                        duration: const Duration(milliseconds: 250),
                         margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: _currentPage == i ? 20 : 8,
+                        width: _currentPage == i ? 24 : 8,
                         height: 8,
                         decoration: BoxDecoration(
                           color: _currentPage == i
-                              ? AppColors.primaryBlue
-                              : const Color(0xFFCBD5E1),
+                              ? AppColors.techOrange
+                              : AppColors.lightBorder,
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -142,9 +210,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlue,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size(130, 48),
+                      backgroundColor: AppColors.techOrange,
+                      foregroundColor: AppColors.white,
+                      minimumSize: const Size(140, 48),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () {
                       if (_currentPage < _pages.length - 1) {
@@ -156,8 +228,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         _finishOnboarding();
                       }
                     },
-                    child: Text(
-                      _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _currentPage == _pages.length - 1
+                              ? 'Enter Console'
+                              : 'Next',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.arrow_forward_rounded, size: 16),
+                      ],
                     ),
                   ),
                 ],
@@ -169,4 +254,3 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 }
-

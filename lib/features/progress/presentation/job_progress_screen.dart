@@ -72,6 +72,11 @@ class JobProgressScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final progressAsync = ref.watch(jobProgressProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Scaffold(
       appBar: AppBar(
@@ -79,6 +84,7 @@ class JobProgressScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Progress',
             onPressed: () => ref.refresh(jobProgressProvider),
           ),
         ],
@@ -97,7 +103,7 @@ class JobProgressScreen extends ConsumerWidget {
               Card(
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.lightBorder),
+                  side: BorderSide(color: borderColor),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
@@ -107,33 +113,40 @@ class JobProgressScreen extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                job.robotName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  job.robotName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                    color: primaryTextColor,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                'Mission #${job.jobId}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF64748B),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Mission #${job.jobId}',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: secondaryTextColor,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 4),
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: isFaultOrFailed
                                   ? AppColors.severityCritical
                                       .withValues(alpha: 0.12)
-                                  : AppColors.statusCleaning
+                                  : AppColors.techOrange
                                       .withValues(alpha: 0.12),
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -144,7 +157,7 @@ class JobProgressScreen extends ConsumerWidget {
                                 fontWeight: FontWeight.bold,
                                 color: isFaultOrFailed
                                     ? AppColors.severityCritical
-                                    : AppColors.statusCleaning,
+                                    : AppColors.techOrange,
                               ),
                             ),
                           ),
@@ -154,17 +167,22 @@ class JobProgressScreen extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'Overall Progress',
                             style: TextStyle(
-                                fontSize: 14, fontWeight: FontWeight.w600),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: primaryTextColor,
+                            ),
                           ),
                           Text(
                             '${job.overallProgress.toStringAsFixed(1)}%',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryBlue,
+                              color: isFaultOrFailed
+                                  ? AppColors.severityCritical
+                                  : AppColors.techOrange,
                             ),
                           ),
                         ],
@@ -175,11 +193,11 @@ class JobProgressScreen extends ConsumerWidget {
                         child: LinearProgressIndicator(
                           value: job.overallProgress / 100,
                           minHeight: 10,
-                          backgroundColor: const Color(0xFFE2E8F0),
+                          backgroundColor: borderColor,
                           valueColor: AlwaysStoppedAnimation<Color>(
                             isFaultOrFailed
                                 ? AppColors.severityCritical
-                                : AppColors.statusCleaning,
+                                : AppColors.techOrange,
                           ),
                         ),
                       ),
@@ -187,15 +205,25 @@ class JobProgressScreen extends ConsumerWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _statTile('Elapsed Time',
-                              '${job.elapsedTime.inMinutes}m ${job.elapsedTime.inSeconds % 60}s'),
-                          _statTile('Coverage Area',
-                              '${job.totalCoverageM2.toStringAsFixed(1)} m²'),
+                          _statTile(
+                            'Elapsed Time',
+                            '${job.elapsedTime.inMinutes}m ${job.elapsedTime.inSeconds % 60}s',
+                            primaryTextColor,
+                            secondaryTextColor,
+                          ),
+                          _statTile(
+                            'Coverage Area',
+                            '${job.totalCoverageM2.toStringAsFixed(1)} m²',
+                            primaryTextColor,
+                            secondaryTextColor,
+                          ),
                           // MOB-PROG-003: Only show ETA if supplied by backend
                           if (job.estimatedFinishTime != null)
                             _statTile(
                               'Estimated Finish',
                               '${job.estimatedFinishTime!.hour}:${job.estimatedFinishTime!.minute.toString().padLeft(2, '0')}',
+                              primaryTextColor,
+                              secondaryTextColor,
                             ),
                         ],
                       ),
@@ -206,17 +234,21 @@ class JobProgressScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // Per-Zone Progress Breakdown (MOB-PROG-001)
-              const Text(
+              Text(
                 'Per-Zone Breakdown',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
               ),
               const SizedBox(height: 10),
               ...job.zones.map(
                 (zone) => Card(
                   margin: const EdgeInsets.only(bottom: 10),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: AppColors.lightBorder),
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(color: borderColor),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
@@ -226,56 +258,64 @@ class JobProgressScreen extends ConsumerWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  zone.isCompleted
-                                      ? Icons.check_circle_rounded
-                                      : Icons.timelapse_rounded,
-                                  size: 18,
-                                  color: zone.isCompleted
-                                      ? AppColors.statusCleaning
-                                      : AppColors.primaryBlue,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  zone.zoneName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                            Expanded(
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    zone.isCompleted
+                                        ? Icons.check_circle_rounded
+                                        : Icons.timelapse_rounded,
+                                    size: 18,
+                                    color: zone.isCompleted
+                                        ? AppColors.successGreen
+                                        : AppColors.techOrange,
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      zone.zoneName,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: primaryTextColor,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                             Text(
                               '${zone.progressPercentage.toStringAsFixed(0)}%',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
+                                color: zone.isCompleted
+                                    ? AppColors.successGreen
+                                    : AppColors.techOrange,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         ClipRRect(
                           borderRadius: BorderRadius.circular(4),
                           child: LinearProgressIndicator(
                             value: zone.progressPercentage / 100,
                             minHeight: 6,
-                            backgroundColor: const Color(0xFFE2E8F0),
+                            backgroundColor: borderColor,
                             valueColor: AlwaysStoppedAnimation<Color>(
                               zone.isCompleted
-                                  ? AppColors.statusCleaning
-                                  : AppColors.primaryBlue,
+                                  ? AppColors.successGreen
+                                  : AppColors.techOrange,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           'Cleaned ${zone.areaCleanedM2.toStringAsFixed(1)} m² of ${zone.totalAreaM2} m²',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF64748B),
+                            color: secondaryTextColor,
                           ),
                         ),
                       ],
@@ -286,14 +326,22 @@ class JobProgressScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // Event Timeline (MOB-PROG-002)
-              const Text(
+              Text(
                 'Mission Event Timeline',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: primaryTextColor,
+                ),
               ),
-              const SizedBox(height: 10),
-              ...job.timeline.map((event) {
+              const SizedBox(height: 12),
+              ...job.timeline.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final event = entry.value;
+                final isLast = idx == job.timeline.length - 1;
+
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 12.0),
+                  padding: const EdgeInsets.only(bottom: 4.0),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -302,51 +350,66 @@ class JobProgressScreen extends ConsumerWidget {
                           Container(
                             width: 12,
                             height: 12,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: AppColors.primaryBlue,
+                              color: isLast
+                                  ? AppColors.techOrange
+                                  : AppColors.primaryNavy,
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColors.white
+                                    : AppColors.primaryNavy
+                                        .withValues(alpha: 0.2),
+                                width: 2,
+                              ),
                             ),
                           ),
-                          Container(
-                            width: 2,
-                            height: 40,
-                            color: const Color(0xFFE2E8F0),
-                          ),
+                          if (!isLast)
+                            Container(
+                              width: 2,
+                              height: 44,
+                              color: borderColor,
+                            ),
                         ],
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  event.title,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    event.title,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: primaryTextColor,
+                                    ),
                                   ),
-                                ),
-                                Text(
-                                  '${event.timestamp.hour}:${event.timestamp.minute.toString().padLeft(2, '0')}',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF94A3B8),
+                                  Text(
+                                    '${event.timestamp.hour}:${event.timestamp.minute.toString().padLeft(2, '0')}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: secondaryTextColor,
+                                    ),
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              event.description,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF475569),
+                                ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 3),
+                              Text(
+                                event.description,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: secondaryTextColor,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -360,17 +423,29 @@ class JobProgressScreen extends ConsumerWidget {
     );
   }
 
-  Widget _statTile(String label, String value) {
+  Widget _statTile(
+    String label,
+    String value,
+    Color primaryTextColor,
+    Color secondaryTextColor,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
-        const SizedBox(height: 2),
-        Text(value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: secondaryTextColor),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
+            color: primaryTextColor,
+          ),
+        ),
       ],
     );
   }
 }
-

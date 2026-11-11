@@ -61,6 +61,11 @@ class SettingsScreen extends ConsumerWidget {
     final config = ref.watch(appConfigProvider);
     final currentLocale = ref.watch(appLocaleProvider);
     final currentTheme = ref.watch(appThemeModeProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor =
+        isDark ? Colors.white70 : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Scaffold(
       appBar: AppBar(
@@ -73,7 +78,7 @@ class SettingsScreen extends ConsumerWidget {
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
-              side: const BorderSide(color: AppColors.lightBorder),
+              side: BorderSide(color: borderColor),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
@@ -81,7 +86,7 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: AppColors.primaryLight,
+                    backgroundColor: AppColors.primaryNavy,
                     child: Text(
                       user?.fullName.isNotEmpty == true
                           ? user!.fullName[0].toUpperCase()
@@ -89,7 +94,7 @@ class SettingsScreen extends ConsumerWidget {
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primaryBlue,
+                        color: AppColors.techOrange,
                       ),
                     ),
                   ),
@@ -100,21 +105,28 @@ class SettingsScreen extends ConsumerWidget {
                       children: [
                         Text(
                           user?.fullName ?? 'Operator',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
+                            color: primaryTextColor,
                           ),
                         ),
                         const SizedBox(height: 2),
                         Text(
                           user?.email ?? 'operator@cleanbot.io',
-                          style: const TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: secondaryTextColor,
+                          ),
                         ),
                         const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                            color: AppColors.techOrange.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -122,7 +134,7 @@ class SettingsScreen extends ConsumerWidget {
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.primaryBlue,
+                              color: AppColors.techOrange,
                             ),
                           ),
                         ),
@@ -136,16 +148,28 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 20),
 
           // Localization Selection (MOB-SET-001, MOB-SET-002)
-          const Text(
+          Text(
             'Language & Localization',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
           ),
           const SizedBox(height: 8),
           Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: borderColor),
+            ),
             child: Column(
               children: [
                 RadioListTile<String>(
-                  title: const Text('English (Default)'),
+                  activeColor: AppColors.techOrange,
+                  title: Text(
+                    'English (Default)',
+                    style: TextStyle(color: primaryTextColor),
+                  ),
                   value: 'en',
                   groupValue: currentLocale.languageCode,
                   onChanged: (code) {
@@ -155,7 +179,11 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 RadioListTile<String>(
-                  title: const Text('አማርኛ (Amharic)'),
+                  activeColor: AppColors.techOrange,
+                  title: Text(
+                    'አማርኛ (Amharic)',
+                    style: TextStyle(color: primaryTextColor),
+                  ),
                   value: 'am',
                   groupValue: currentLocale.languageCode,
                   onChanged: (code) {
@@ -165,7 +193,11 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 RadioListTile<String>(
-                  title: const Text('Afaan Oromoo (Oromo)'),
+                  activeColor: AppColors.techOrange,
+                  title: Text(
+                    'Afaan Oromoo (Oromo)',
+                    style: TextStyle(color: primaryTextColor),
+                  ),
                   value: 'om',
                   groupValue: currentLocale.languageCode,
                   onChanged: (code) {
@@ -180,41 +212,67 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 20),
 
           // Theme Selection (MOB-SET-001)
-          const Text(
+          Text(
             'Appearance & Theme',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
           ),
           const SizedBox(height: 8),
           Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: borderColor),
+            ),
             child: Column(
               children: [
                 RadioListTile<ThemeMode>(
-                  title: const Text('System Default'),
+                  activeColor: AppColors.techOrange,
+                  title: Text(
+                    'System Default',
+                    style: TextStyle(color: primaryTextColor),
+                  ),
                   value: ThemeMode.system,
                   groupValue: currentTheme,
                   onChanged: (mode) {
                     if (mode != null) {
-                      ref.read(appThemeModeProvider.notifier).setThemeMode(mode);
+                      ref
+                          .read(appThemeModeProvider.notifier)
+                          .setThemeMode(mode);
                     }
                   },
                 ),
                 RadioListTile<ThemeMode>(
-                  title: const Text('Light Theme'),
+                  activeColor: AppColors.techOrange,
+                  title: Text(
+                    'Light Theme',
+                    style: TextStyle(color: primaryTextColor),
+                  ),
                   value: ThemeMode.light,
                   groupValue: currentTheme,
                   onChanged: (mode) {
                     if (mode != null) {
-                      ref.read(appThemeModeProvider.notifier).setThemeMode(mode);
+                      ref
+                          .read(appThemeModeProvider.notifier)
+                          .setThemeMode(mode);
                     }
                   },
                 ),
                 RadioListTile<ThemeMode>(
-                  title: const Text('Dark Theme'),
+                  activeColor: AppColors.techOrange,
+                  title: Text(
+                    'Dark Theme',
+                    style: TextStyle(color: primaryTextColor),
+                  ),
                   value: ThemeMode.dark,
                   groupValue: currentTheme,
                   onChanged: (mode) {
                     if (mode != null) {
-                      ref.read(appThemeModeProvider.notifier).setThemeMode(mode);
+                      ref
+                          .read(appThemeModeProvider.notifier)
+                          .setThemeMode(mode);
                     }
                   },
                 ),
@@ -224,29 +282,54 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 20),
 
           // System & Backend Environment Info (MOB-SET-003, MOB-SET-004)
-          const Text(
+          Text(
             'Application & Backend Environment',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: primaryTextColor,
+            ),
           ),
           const SizedBox(height: 8),
           Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: BorderSide(color: borderColor),
+            ),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  _infoRow('App Version', '1.0.0 (Build 1)'),
+                  _infoRow(
+                    'App Version',
+                    '1.0.0 (Build 1)',
+                    primaryTextColor,
+                    secondaryTextColor,
+                  ),
                   const Divider(height: 16),
-                  _infoRow('Target Architecture', 'Feature-First Riverpod'),
+                  _infoRow(
+                    'Target Architecture',
+                    'Feature-First Riverpod',
+                    primaryTextColor,
+                    secondaryTextColor,
+                  ),
                   const Divider(height: 16),
                   _infoRow(
                     'Backend Env',
                     config.environmentLabel,
+                    primaryTextColor,
+                    secondaryTextColor,
                     badgeColor: config.isProduction
-                        ? AppColors.statusCleaning
-                        : AppColors.severityWarning,
+                        ? AppColors.successGreen
+                        : AppColors.techOrange,
                   ),
                   const Divider(height: 16),
-                  _infoRow('REST Base URL', config.apiBaseUrl),
+                  _infoRow(
+                    'REST Base URL',
+                    config.apiBaseUrl,
+                    primaryTextColor,
+                    secondaryTextColor,
+                  ),
                 ],
               ),
             ),
@@ -259,6 +342,9 @@ class SettingsScreen extends ConsumerWidget {
               foregroundColor: AppColors.severityCritical,
               side: const BorderSide(color: AppColors.severityCritical),
               minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             icon: const Icon(Icons.logout),
             label: const Text('Sign Out'),
@@ -274,25 +360,45 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _infoRow(String label, String value, {Color? badgeColor}) {
+  Widget _infoRow(
+    String label,
+    String value,
+    Color primaryTextColor,
+    Color secondaryTextColor, {
+    Color? badgeColor,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: const TextStyle(fontSize: 13, color: Color(0xFF64748B))),
+        Text(
+          label,
+          style: TextStyle(fontSize: 13, color: secondaryTextColor),
+        ),
         if (badgeColor != null)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
               color: badgeColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
               value,
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: badgeColor),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: badgeColor,
+              ),
             ),
           )
         else
-          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: primaryTextColor,
+            ),
+          ),
       ],
     );
   }

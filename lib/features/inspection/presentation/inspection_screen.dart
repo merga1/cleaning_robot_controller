@@ -36,7 +36,7 @@ class InspectionScreen extends ConsumerWidget {
                 backgroundColor: AppColors.techOrange,
                 foregroundColor: AppColors.white,
                 disabledBackgroundColor:
-                    isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                    isDark ? AppColors.darkBorder : AppColors.borderBlue,
                 minimumSize: const Size.fromHeight(50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),

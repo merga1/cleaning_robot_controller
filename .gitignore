@@ -46,3 +46,16 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Python / backend
+backend/.venv/
+**/__pycache__/
+*.py[cod]
+backend/.env
+backend/deploy/*.local.env
+
+# ROS 2 workspace build artefacts
+backend/ros2_ws/build/
+backend/ros2_ws/install/
+backend/ros2_ws/log/
+backend/ros2_ws/src/**/__pycache__/

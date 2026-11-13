@@ -100,7 +100,7 @@ class _LiveMapScreenState extends ConsumerState<LiveMapScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: AppColors.primaryNavy.withValues(alpha: 0.10),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -173,7 +173,7 @@ class _FloorplanPainter extends CustomPainter {
     final gridPaint = Paint()
       ..color = isDark
           ? AppColors.darkBorder.withValues(alpha: 0.5)
-          : const Color(0xFFF1F5F9)
+          : AppColors.softBlue
       ..strokeWidth = 1.0;
 
     // Draw background grid

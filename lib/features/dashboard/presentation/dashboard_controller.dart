@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/websocket_client.dart';
+import '../../robots/domain/robot_model.dart';
 import '../../robots/presentation/robots_controller.dart';
 import '../domain/dashboard_summary_model.dart';
 
@@ -98,24 +100,134 @@ class DashboardController extends Notifier<DashboardState> {
   }
 
   void _handleLiveUpdate(WebSocketMessage msg) {
-    final current = state.summary;
-    if (current == null) return;
+    // Robot telemetry messages keep the shared robot list in sync so every
+    // screen (dashboard, map, controls) reflects the Pi hardware state.
+    if (msg.type == 'robot_state') {
+      final active = ref.read(robotsControllerProvider).activeRobot;
+      if (active != null) {
+        ref.read(robotsControllerProvider.notifier).updateActiveRobotFromLive(
+              active.copyWith(
+                batteryLevel:
+                    (msg.payload['battery_level'] as num?)?.toInt() ??
+                        active.batteryLevel,
+                isCharging: msg.payload['is_charging'] as bool? ??
+                    active.isCharging,
+                connectionState: RobotConnectionState.fromString(
+                  msg.payload['connection_state'] as String?,
+                ),
+                status: RobotOperationalStatus.fromString(
+                  msg.payload['status'] as String?,
+                ),
+                lastUpdatedAt: msg.timestamp,
+              ),
+            );
+      }
+      return;
+    }
 
-    if (msg.type == 'container_reading') {
-      final fill =
-          (msg.payload['fill_percentage'] as num?)?.toInt() ?? current.wasteFillPercentage;
-      state = state.copyWith(
-        summary: DashboardSummaryModel(
-          robotId: current.robotId,
-          activeJob: current.activeJob,
-          wasteFillPercentage: fill,
-          wasteSensorFault: msg.payload['sensor_fault'] as bool? ?? false,
-          latestCleanliness: current.latestCleanliness,
-          activeAlertCount: current.activeAlertCount,
-          lastDataReceivedAt: msg.timestamp,
-        ),
-        isStale: false,
-      );
+    final current = state.summary;
+    if (current == null) {
+      // The first live packet can arrive before the REST snapshot.
+      if (msg.type == 'container_reading' || msg.type == 'job_progress') {
+        loadDashboardData();
+      }
+      return;
+    }
+
+    switch (msg.type) {
+      case 'container_reading':
+        final fill = (msg.payload['fill_percentage'] as num?)?.toInt() ??
+            current.wasteFillPercentage;
+        state = state.copyWith(
+          summary: DashboardSummaryModel(
+            robotId: current.robotId,
+            activeJob: current.activeJob,
+            wasteFillPercentage: fill,
+            wasteSensorFault:
+                msg.payload['sensor_fault'] as bool? ?? false,
+            latestCleanliness: current.latestCleanliness,
+            activeAlertCount: current.activeAlertCount,
+            lastDataReceivedAt: msg.timestamp,
+          ),
+          isStale: false,
+        );
+        break;
+
+      case 'job_progress':
+        final progress =
+            (msg.payload['progress_percentage'] as num?)?.toDouble();
+        final activeJob = current.activeJob;
+        if (progress != null && activeJob != null) {
+          state = state.copyWith(
+            summary: DashboardSummaryModel(
+              robotId: current.robotId,
+              activeJob: ActiveJobSummary(
+                jobId: msg.payload['job_id'] as String? ?? activeJob.jobId,
+                zoneName:
+                    msg.payload['zone_name'] as String? ?? activeJob.zoneName,
+                progressPercentage: progress,
+                elapsedTime: Duration(
+                  seconds:
+                      (msg.payload['elapsed_seconds'] as num?)?.toInt() ??
+                          activeJob.elapsedTime.inSeconds,
+                ),
+                coverageAreaM2:
+                    (msg.payload['coverage_area_m2'] as num?)?.toDouble() ??
+                        activeJob.coverageAreaM2,
+              ),
+              wasteFillPercentage: current.wasteFillPercentage,
+              wasteSensorFault: current.wasteSensorFault,
+              latestCleanliness: current.latestCleanliness,
+              activeAlertCount: current.activeAlertCount,
+              lastDataReceivedAt: msg.timestamp,
+            ),
+            isStale: false,
+          );
+        }
+        break;
+
+      case 'cleanliness':
+        final score = (msg.payload['score'] as num?)?.toDouble();
+        final confidence = (msg.payload['confidence'] as num?)?.toDouble();
+        if (score != null && confidence != null) {
+          state = state.copyWith(
+            summary: DashboardSummaryModel(
+              robotId: current.robotId,
+              activeJob: current.activeJob,
+              wasteFillPercentage: current.wasteFillPercentage,
+              wasteSensorFault: current.wasteSensorFault,
+              latestCleanliness: CleanlinessSummary(
+                score: score,
+                confidence: confidence,
+                timestamp: msg.timestamp,
+                isSimulated: msg.isSimulated,
+                zoneName:
+                    msg.payload['zone_name'] as String? ?? 'Cleaning zone',
+              ),
+              activeAlertCount: current.activeAlertCount,
+              lastDataReceivedAt: msg.timestamp,
+            ),
+            isStale: false,
+          );
+        }
+        break;
+
+      case 'alert':
+        state = state.copyWith(
+          summary: DashboardSummaryModel(
+            robotId: current.robotId,
+            activeJob: current.activeJob,
+            wasteFillPercentage: current.wasteFillPercentage,
+            wasteSensorFault: current.wasteSensorFault,
+            latestCleanliness: current.latestCleanliness,
+            activeAlertCount:
+                (msg.payload['active_alert_count'] as num?)?.toInt() ??
+                    current.activeAlertCount,
+            lastDataReceivedAt: msg.timestamp,
+          ),
+          isStale: false,
+        );
+        break;
     }
   }
 
@@ -152,11 +264,77 @@ class DashboardController extends Notifier<DashboardState> {
           isStale: false,
         );
       } else {
-        state = state.copyWith(isLoading: false);
+        final activeRobotId =
+            ref.read(robotsControllerProvider).activeRobot?.id;
+        final dio = ref.read(dioProvider);
+        final response = await dio.get<Map<String, dynamic>>(
+          '/dashboard/summary',
+          queryParameters: activeRobotId == null
+              ? null
+              : {'robot_id': activeRobotId},
+        );
+        final data = response.data ?? const <String, dynamic>{};
+        state = state.copyWith(
+          isLoading: false,
+          summary: _summaryFromJson(data),
+          isStale: false,
+        );
       }
     } catch (e) {
-      state = state.copyWith(isLoading: false, errorMessage: e.toString());
+      String message = e.toString();
+      if (e is DioException) {
+        message = e.response?.data?['detail']?.toString() ??
+            'Could not reach the Raspberry Pi backend at ${_config.apiBaseUrl}.';
+      }
+      state = state.copyWith(isLoading: false, errorMessage: message);
     }
+  }
+
+  DashboardSummaryModel _summaryFromJson(Map<String, dynamic> json) {
+    final jobJson = json['active_job'] as Map<String, dynamic>?;
+    final cleanlinessJson =
+        json['latest_cleanliness'] as Map<String, dynamic>?;
+
+    return DashboardSummaryModel(
+      robotId: json['robot_id'] as String? ?? 'robot-alpha-01',
+      activeJob: jobJson == null
+          ? null
+          : ActiveJobSummary(
+              jobId: jobJson['job_id'] as String? ?? '',
+              zoneName: jobJson['zone_name'] as String? ?? 'Cleaning zone',
+              progressPercentage:
+                  (jobJson['progress_percentage'] as num?)?.toDouble() ?? 0,
+              elapsedTime: Duration(
+                seconds: (jobJson['elapsed_seconds'] as num?)?.toInt() ?? 0,
+              ),
+              coverageAreaM2:
+                  (jobJson['coverage_area_m2'] as num?)?.toDouble() ?? 0,
+            ),
+      wasteFillPercentage:
+          (json['waste_fill_percentage'] as num?)?.toInt() ?? 0,
+      wasteSensorFault: json['waste_sensor_fault'] as bool? ?? false,
+      latestCleanliness: cleanlinessJson == null
+          ? null
+          : CleanlinessSummary(
+              score:
+                  (cleanlinessJson['score'] as num?)?.toDouble() ?? 0,
+              confidence:
+                  (cleanlinessJson['confidence'] as num?)?.toDouble() ?? 0,
+              timestamp: DateTime.tryParse(
+                    cleanlinessJson['timestamp'] as String? ?? '',
+                  ) ??
+                  DateTime.now(),
+              isSimulated:
+                  cleanlinessJson['is_simulated'] as bool? ?? false,
+              zoneName:
+                  cleanlinessJson['zone_name'] as String? ?? 'Cleaning zone',
+            ),
+      activeAlertCount: (json['active_alert_count'] as num?)?.toInt() ?? 0,
+      lastDataReceivedAt: DateTime.tryParse(
+            json['last_data_received_at'] as String? ?? '',
+          ) ??
+          DateTime.now(),
+    );
   }
 }
 

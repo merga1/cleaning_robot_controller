@@ -109,7 +109,7 @@ class RobotListScreen extends ConsumerWidget {
                                         ? AppColors.primaryNavy
                                         : (isDark
                                             ? AppColors.darkBackground
-                                            : const Color(0xFFF1F5F9)),
+                                            : AppColors.softBlue),
                                     child: Icon(
                                       Icons.smart_toy_rounded,
                                       color: isSelected

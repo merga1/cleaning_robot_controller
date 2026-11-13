@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/config/backend_settings.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/backend_config_dialog.dart';
 import '../../../core/widgets/safety_banner.dart';
 import 'auth_controller.dart';
 
@@ -42,9 +44,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final brightness = Theme.of(context).brightness;
+    final isDark = brightness == Brightness.dark;
+    final pageBackground = AppColors.surfaceFor(brightness);
+    final primaryText = AppColors.textPrimaryFor(brightness);
+    final secondaryText = AppColors.textSecondaryFor(brightness);
+    final surfaceColor = AppColors.surfaceFor(brightness);
+    final borderColor = AppColors.borderFor(brightness);
+    final fieldFill = isDark ? AppColors.darkElevated : AppColors.white;
 
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: pageBackground,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -116,23 +126,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'Cleaning Robot Controller',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryNavy,
+                      color: primaryText,
                       letterSpacing: -0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Autonomous fleet operation, floor telemetry & zone control',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
-                      color: AppColors.secondaryText,
+                      color: secondaryText,
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -179,33 +189,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // Username / Email Field (MOB-AUTH-007)
                   TextFormField(
                     controller: _usernameController,
-                    style: const TextStyle(
-                      color: AppColors.primaryNavy,
+                    style: TextStyle(
+                      color: primaryText,
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
                       labelText: 'Operator ID or Email',
-                      labelStyle: const TextStyle(color: AppColors.secondaryText),
-                      prefixIcon: const Icon(
+                      labelStyle: TextStyle(color: secondaryText),
+                      prefixIcon: Icon(
                         Icons.badge_outlined,
-                        color: AppColors.primaryNavy,
+                        color: primaryText,
                       ),
                       filled: true,
-                      fillColor: AppColors.white,
+                      fillColor: fieldFill,
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.lightBorder),
+                        borderSide: BorderSide(color: borderColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: AppColors.primaryNavy,
+                          color: AppColors.accentBlue,
                           width: 2,
                         ),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.severityCritical),
+                        borderSide:
+                            const BorderSide(color: AppColors.severityCritical),
                       ),
                     ),
                     validator: (val) {
@@ -221,23 +232,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(
-                      color: AppColors.primaryNavy,
+                    style: TextStyle(
+                      color: primaryText,
                       fontWeight: FontWeight.w600,
                     ),
                     decoration: InputDecoration(
                       labelText: 'Security Password',
-                      labelStyle: const TextStyle(color: AppColors.secondaryText),
-                      prefixIcon: const Icon(
+                      labelStyle: TextStyle(color: secondaryText),
+                      prefixIcon: Icon(
                         Icons.lock_outline,
-                        color: AppColors.primaryNavy,
+                        color: primaryText,
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
-                          color: AppColors.secondaryText,
+                          color: secondaryText,
                         ),
                         onPressed: () {
                           setState(() {
@@ -246,21 +257,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         },
                       ),
                       filled: true,
-                      fillColor: AppColors.white,
+                      fillColor: fieldFill,
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.lightBorder),
+                        borderSide: BorderSide(color: borderColor),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(
-                          color: AppColors.primaryNavy,
+                          color: AppColors.accentBlue,
                           width: 2,
                         ),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.severityCritical),
+                        borderSide:
+                            const BorderSide(color: AppColors.severityCritical),
                       ),
                     ),
                     validator: (val) {
@@ -278,7 +290,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   // Technology Orange Sign In Action Button
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.techOrange,
+                      backgroundColor: AppColors.primaryNavy,
                       foregroundColor: AppColors.white,
                       minimumSize: const Size.fromHeight(50),
                       elevation: 0,
@@ -318,27 +330,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.white,
+                      color: surfaceColor,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.lightBorder),
+                      border: Border.all(color: borderColor),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Icon(
                               Icons.switch_account_outlined,
                               size: 16,
-                              color: AppColors.primaryNavy,
+                              color: primaryText,
                             ),
-                            SizedBox(width: 6),
+                            const SizedBox(width: 6),
                             Text(
                               'Quick Role Presets:',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primaryNavy,
+                                color: primaryText,
                               ),
                             ),
                           ],
@@ -348,8 +360,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           spacing: 8,
                           children: [
                             ActionChip(
-                              backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.06),
-                              side: const BorderSide(color: AppColors.lightBorder),
+                              backgroundColor: AppColors.softBlue,
+                              side: BorderSide(color: borderColor),
                               label: const Text(
                                 'Operator',
                                 style: TextStyle(
@@ -363,8 +375,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               },
                             ),
                             ActionChip(
-                              backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.06),
-                              side: const BorderSide(color: AppColors.lightBorder),
+                              backgroundColor: AppColors.softBlue,
+                              side: BorderSide(color: borderColor),
                               label: const Text(
                                 'Admin',
                                 style: TextStyle(
@@ -378,8 +390,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               },
                             ),
                             ActionChip(
-                              backgroundColor: AppColors.primaryNavy.withValues(alpha: 0.06),
-                              side: const BorderSide(color: AppColors.lightBorder),
+                              backgroundColor: AppColors.softBlue,
+                              side: BorderSide(color: borderColor),
                               label: const Text(
                                 'Read-Only',
                                 style: TextStyle(
@@ -396,6 +408,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Builder(
+                    builder: (context) {
+                      final backend = ref.watch(backendSettingsProvider);
+                      return TextButton.icon(
+                        onPressed: () => showBackendConfigDialog(context),
+                        icon: Icon(
+                          backend.useMock
+                              ? Icons.science_outlined
+                              : Icons.router_outlined,
+                          size: 18,
+                        ),
+                        label: Text(
+                          backend.useMock
+                              ? 'Demo data · Backend: ${backend.displayAddress}'
+                              : 'Raspberry Pi · ${backend.displayAddress}',
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

@@ -51,10 +51,14 @@ class ControlsState {
 
 class ControlsController extends Notifier<ControlsState> {
   Timer? _ackTimer;
+  Timer? _pollTimer;
 
   @override
   ControlsState build() {
-    ref.onDispose(() => _ackTimer?.cancel());
+    ref.onDispose(() {
+      _ackTimer?.cancel();
+      _pollTimer?.cancel();
+    });
     return const ControlsState();
   }
 
@@ -110,6 +114,9 @@ class ControlsController extends Notifier<ControlsState> {
             result.copyWith(state: CommandLifecycleState.executing),
           );
         });
+      } else {
+        // Live Pi mode: follow the command lifecycle from the backend.
+        _startCommandPolling(result.id);
       }
 
       state = state.copyWith(
@@ -125,8 +132,30 @@ class ControlsController extends Notifier<ControlsState> {
     }
   }
 
+  void _startCommandPolling(String commandId) {
+    _pollTimer?.cancel();
+    var attempts = 0;
+    _pollTimer = Timer.periodic(const Duration(milliseconds: 900), (timer) async {
+      attempts++;
+      if (attempts > 30) {
+        timer.cancel();
+        return;
+      }
+      try {
+        final updated = await _repository.getCommandStatus(commandId);
+        updateCommandState(updated);
+        if (updated.state.isTerminal) {
+          timer.cancel();
+        }
+      } catch (_) {
+        // Keep polling until the retry budget is exhausted.
+      }
+    });
+  }
+
   void updateCommandState(CommandModel updated) {
     _ackTimer?.cancel();
+    if (updated.state.isTerminal) _pollTimer?.cancel();
     state = state.copyWith(
       isInFlight: false,
       lastCommand: updated,
@@ -136,6 +165,7 @@ class ControlsController extends Notifier<ControlsState> {
 
   void clearActiveCommand() {
     _ackTimer?.cancel();
+    _pollTimer?.cancel();
     state = const ControlsState();
   }
 }

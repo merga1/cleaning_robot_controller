@@ -1,12 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/app_config.dart';
+import '../config/backend_settings.dart';
 import '../security/secure_storage_service.dart';
 import 'auth_interceptor.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) {
-  // Default to dev config with mock capability as per NFR-MNT-2
-  return AppConfig.dev(mock: true);
+  final backend = ref.watch(backendSettingsProvider);
+  return AppConfig.fromBackendSettings(backend);
 });
 
 final dioProvider = Provider<Dio>((ref) {

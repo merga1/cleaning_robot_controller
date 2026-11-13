@@ -50,8 +50,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = Theme.of(context).brightness;
+    final primaryText = AppColors.textPrimaryFor(brightness);
+    final secondaryText = AppColors.textSecondaryFor(brightness);
+
     return Scaffold(
-      backgroundColor: AppColors.lightBackground,
+      backgroundColor: AppColors.surfaceFor(brightness),
       body: SafeArea(
         child: Column(
           children: [
@@ -76,12 +80,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
+                      Text(
                         'EAII ROBOTICS',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primaryNavy,
+                          color: primaryText,
                           letterSpacing: 0.8,
                         ),
                       ),
@@ -89,10 +93,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   TextButton(
                     onPressed: _finishOnboarding,
-                    child: const Text(
+                    child: Text(
                       'Skip',
                       style: TextStyle(
-                        color: AppColors.secondaryText,
+                        color: secondaryText,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -157,10 +161,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         Text(
                           page['title'] as String,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.primaryNavy,
+                            color: primaryText,
                             letterSpacing: -0.3,
                           ),
                         ),
@@ -168,10 +172,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         Text(
                           page['subtitle'] as String,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             height: 1.5,
-                            color: AppColors.secondaryText,
+                            color: secondaryText,
                           ),
                         ),
                         if (index == 2) ...[
@@ -201,8 +205,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         height: 8,
                         decoration: BoxDecoration(
                           color: _currentPage == i
-                              ? AppColors.techOrange
-                              : AppColors.lightBorder,
+                              ? AppColors.accentBlue
+                              : AppColors.borderFor(brightness),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -210,7 +214,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   ),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.techOrange,
+                      backgroundColor: AppColors.primaryNavy,
                       foregroundColor: AppColors.white,
                       minimumSize: const Size(140, 48),
                       elevation: 0,

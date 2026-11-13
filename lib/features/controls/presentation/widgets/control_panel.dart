@@ -291,7 +291,7 @@ class ControlPanel extends ConsumerWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: backgroundColor,
         foregroundColor: AppColors.white,
-        disabledBackgroundColor: const Color(0xFFCBD5E1),
+        disabledBackgroundColor: AppColors.paleBlue,
         minimumSize: const Size.fromHeight(50),
         elevation: 0,
         shape: RoundedRectangleBorder(

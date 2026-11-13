@@ -1,4 +1,6 @@
-enum AppEnvironment { dev, staging, prod }
+import 'backend_settings.dart';
+
+enum AppEnvironment { dev, pi, staging, prod }
 
 class AppConfig {
   final AppEnvironment environment;
@@ -23,15 +25,30 @@ class AppConfig {
 
   bool get isProduction => environment == AppEnvironment.prod;
 
+  bool get isLiveRobot => environment == AppEnvironment.pi;
+
   String get environmentLabel {
     switch (environment) {
       case AppEnvironment.dev:
-        return 'Development (Mock/Local)';
+        return enableMockMode ? 'Development (Demo data)' : 'Development';
+      case AppEnvironment.pi:
+        return 'Raspberry Pi (Live Robot)';
       case AppEnvironment.staging:
         return 'Staging';
       case AppEnvironment.prod:
         return 'Production';
     }
+  }
+
+  /// Builds a config from the user-selected Raspberry Pi backend.
+  factory AppConfig.fromBackendSettings(BackendSettings settings) {
+    return AppConfig(
+      environment:
+          settings.useMock ? AppEnvironment.dev : AppEnvironment.pi,
+      apiBaseUrl: settings.apiBaseUrl,
+      wsBaseUrl: settings.wsBaseUrl,
+      enableMockMode: settings.useMock,
+    );
   }
 
   static AppConfig dev({bool mock = true}) => AppConfig(
@@ -55,4 +72,3 @@ class AppConfig {
         enableMockMode: false,
       );
 }
-

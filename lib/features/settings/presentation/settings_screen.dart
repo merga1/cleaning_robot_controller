@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/preferences_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/backend_config_dialog.dart';
 import '../../auth/presentation/auth_controller.dart';
 
 class AppLocaleNotifier extends Notifier<Locale> {
@@ -315,13 +316,13 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const Divider(height: 16),
                   _infoRow(
-                    'Backend Env',
-                    config.environmentLabel,
+                    'Backend Mode',
+                    config.enableMockMode ? 'Demo data' : 'Live robot',
                     primaryTextColor,
                     secondaryTextColor,
-                    badgeColor: config.isProduction
-                        ? AppColors.successGreen
-                        : AppColors.techOrange,
+                    badgeColor: config.enableMockMode
+                        ? AppColors.accentBlue
+                        : AppColors.primaryNavy,
                   ),
                   const Divider(height: 16),
                   _infoRow(
@@ -329,6 +330,19 @@ class SettingsScreen extends ConsumerWidget {
                     config.apiBaseUrl,
                     primaryTextColor,
                     secondaryTextColor,
+                  ),
+                  const Divider(height: 16),
+                  _infoRow(
+                    'WebSocket URL',
+                    config.wsBaseUrl,
+                    primaryTextColor,
+                    secondaryTextColor,
+                  ),
+                  const SizedBox(height: 14),
+                  OutlinedButton.icon(
+                    onPressed: () => showBackendConfigDialog(context),
+                    icon: const Icon(Icons.router_outlined, size: 18),
+                    label: const Text('Configure Raspberry Pi Backend'),
                   ),
                 ],
               ),

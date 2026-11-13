@@ -265,7 +265,8 @@ class _DetectionsScreenState extends ConsumerState<DetectionsScreen> {
       selected: selected,
       showCheckmark: false,
       selectedColor: AppColors.techOrange,
-      backgroundColor: isDark ? AppColors.darkSurface : const Color(0xFFF1F5F9),
+      backgroundColor:
+          isDark ? AppColors.darkSurface : AppColors.softBlue,
       side: BorderSide(
         color: selected
             ? AppColors.techOrange

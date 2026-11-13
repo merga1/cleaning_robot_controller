@@ -1,0 +1,37 @@
+[Unit]
+Description=CleanBot ROS 2 hardware + navigation stack
+Documentation=https://github.com/cleanbot/cleanbot
+After=network-online.target cleanbot-backend.service
+Wants=network-online.target
+# Restart automatically if the ESP32 disappears and reappears.
+BindsTo=dev-serial0.device
+After=dev-serial0.device
+
+[Service]
+Type=simple
+User=__CLEANBOT_USER__
+Group=__CLEANBOT_USER__
+SupplementaryGroups=dialout
+Environment=HOME=/home/__CLEANBOT_USER__
+Environment=ROS_DOMAIN_ID=0
+Environment=ROS_LOCALHOST_ONLY=0
+Environment=RCUTILS_COLORIZED_OUTPUT=1
+Environment=RCUTILS_LOGGING_BUFFERED_STREAM=0
+WorkingDirectory=__INSTALL_DIR__/ros2_ws
+
+ExecStart=/bin/bash -c '\
+    source /opt/ros/__ROS_DISTRO__/setup.bash && \
+    source __INSTALL_DIR__/ros2_ws/install/setup.bash && \
+    exec ros2 launch cleanbot_bringup robot.launch.py \
+        serial_port:=/dev/serial0 mode:=navigation headless:=true'
+
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGINT
+
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

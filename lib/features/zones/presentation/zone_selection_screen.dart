@@ -6,49 +6,7 @@ import '../../../core/widgets/confirmation_dialog.dart';
 import '../../controls/domain/command_model.dart';
 import '../../controls/presentation/controls_controller.dart';
 import '../../robots/presentation/robots_controller.dart';
-import '../domain/zone_model.dart';
-
-final zonesListProvider = FutureProvider<List<ZoneModel>>((ref) async {
-  // Mock zones representing real building floorplan
-  await Future.delayed(const Duration(milliseconds: 300));
-  return [
-    ZoneModel(
-      id: 'zone-101',
-      name: 'Main Reception & Lobby',
-      areaM2: 120.5,
-      lastCleanedAt: DateTime.now().subtract(const Duration(hours: 4)),
-      isAvailable: true,
-    ),
-    ZoneModel(
-      id: 'zone-102',
-      name: 'North Conference Hall',
-      areaM2: 85.0,
-      lastCleanedAt: DateTime.now().subtract(const Duration(hours: 18)),
-      isAvailable: true,
-    ),
-    ZoneModel(
-      id: 'zone-103',
-      name: 'Executive Boardroom',
-      areaM2: 64.2,
-      lastCleanedAt: DateTime.now().subtract(const Duration(days: 1)),
-      isAvailable: true,
-    ),
-    const ZoneModel(
-      id: 'zone-104',
-      name: 'Cafeteria & Dining Lounge',
-      areaM2: 150.0,
-      isAvailable: false,
-      unavailabilityReason: 'Active human maintenance in progress',
-    ),
-    const ZoneModel(
-      id: 'zone-105',
-      name: 'Server Room Corridor',
-      areaM2: 45.0,
-      isAvailable: false,
-      unavailabilityReason: 'Restricted high-security access',
-    ),
-  ];
-});
+import 'zones_controller.dart';
 
 class ZoneSelectionScreen extends ConsumerStatefulWidget {
   const ZoneSelectionScreen({super.key});
@@ -91,7 +49,7 @@ class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
                 backgroundColor: AppColors.techOrange,
                 foregroundColor: AppColors.white,
                 disabledBackgroundColor:
-                    isDark ? AppColors.darkBorder : const Color(0xFFCBD5E1),
+                    isDark ? AppColors.darkBorder : AppColors.borderBlue,
                 minimumSize: const Size.fromHeight(50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -202,7 +160,7 @@ class _ZoneSelectionScreenState extends ConsumerState<ZoneSelectionScreen> {
                           decoration: BoxDecoration(
                             color: isDark
                                 ? AppColors.darkBackground
-                                : const Color(0xFFF1F5F9),
+                                : AppColors.softBlue,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(

@@ -48,8 +48,50 @@ class PreferencesService {
     return _prefs.getString(AppConstants.keyLanguage) ?? 'en';
   }
 
+  // ---------------------------------------------------------------------------
+  // Raspberry Pi backend connection
+  // ---------------------------------------------------------------------------
+
+  Future<void> setBackendHost(String host) async {
+    await _prefs.setString(AppConstants.keyBackendHost, host);
+  }
+
+  String getBackendHost() {
+    return _prefs.getString(AppConstants.keyBackendHost) ??
+        AppConstants.defaultBackendHost;
+  }
+
+  Future<void> setBackendPort(int port) async {
+    await _prefs.setInt(AppConstants.keyBackendPort, port);
+  }
+
+  int getBackendPort() {
+    return _prefs.getInt(AppConstants.keyBackendPort) ??
+        AppConstants.defaultBackendPort;
+  }
+
+  Future<void> setBackendUseTls(bool useTls) async {
+    await _prefs.setBool(AppConstants.keyBackendUseTls, useTls);
+  }
+
+  bool getBackendUseTls() {
+    return _prefs.getBool(AppConstants.keyBackendUseTls) ?? false;
+  }
+
+  Future<void> setBackendUseMock(bool useMock) async {
+    await _prefs.setBool(AppConstants.keyBackendUseMock, useMock);
+  }
+
+  bool getBackendUseMock() {
+    return _prefs.getBool(AppConstants.keyBackendUseMock) ?? false;
+  }
+
   Future<void> clearAll() async {
     await _prefs.remove(AppConstants.keySelectedRobotId);
+    await _prefs.remove(AppConstants.keyBackendHost);
+    await _prefs.remove(AppConstants.keyBackendPort);
+    await _prefs.remove(AppConstants.keyBackendUseTls);
+    await _prefs.remove(AppConstants.keyBackendUseMock);
   }
 }
 

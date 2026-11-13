@@ -8,6 +8,14 @@ class AppConstants {
   static const String keyOnboardingComplete = 'cleanbot_onboarding_complete';
   static const String keyThemeMode = 'cleanbot_theme_mode';
   static const String keyLanguage = 'cleanbot_language_code';
+  static const String keyBackendHost = 'cleanbot_backend_host';
+  static const String keyBackendPort = 'cleanbot_backend_port';
+  static const String keyBackendUseTls = 'cleanbot_backend_use_tls';
+  static const String keyBackendUseMock = 'cleanbot_backend_use_mock';
+
+  // Raspberry Pi backend defaults
+  static const String defaultBackendHost = 'cleanbot.local';
+  static const int defaultBackendPort = 8000;
 
   // Freshness & Performance
   static const int staleThresholdSeconds = 20;

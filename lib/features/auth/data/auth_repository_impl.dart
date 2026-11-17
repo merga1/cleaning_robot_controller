@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/security/secure_storage_service.dart';
+import '../../../mock/mock_catalog.dart';
 import '../domain/auth_repository.dart';
 import '../domain/user_model.dart';
 
@@ -23,34 +24,19 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<User> login({required String username, required String password}) async {
     if (_config.enableMockMode) {
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (username.contains('admin')) {
-        _cachedUser = const User(
-          id: 'usr-admin-01',
-          email: 'admin@cleanbot.io',
-          fullName: 'System Administrator',
-          role: UserRole.admin,
-        );
-      } else if (username.contains('readonly')) {
-        _cachedUser = const User(
-          id: 'usr-auditor-01',
-          email: 'auditor@cleanbot.io',
-          fullName: 'Audit Supervisor',
-          role: UserRole.readOnly,
-        );
-      } else {
-        _cachedUser = const User(
-          id: 'usr-operator-01',
-          email: 'operator@cleanbot.io',
-          fullName: 'Floor Operator',
-          role: UserRole.operator,
+      await Future.delayed(const Duration(milliseconds: 400));
+      final account = MockCatalog.accountFor(username);
+      if (account == null || account.password != password) {
+        throw const AuthFailure(
+          message: 'Invalid email or password. Use one of the demo accounts.',
         );
       }
-
+      _cachedUser = account.user;
       await _storage.saveTokens(
-        accessToken: 'mock_jwt_access_token_12345',
-        refreshToken: 'mock_jwt_refresh_token_67890',
+        accessToken: 'mock-access-token-${account.user.id}',
+        refreshToken: 'mock-refresh-token-${account.user.id}',
       );
+      await _storage.saveDemoUserEmail(account.user.email);
       return _cachedUser!;
     }
 
@@ -75,6 +61,21 @@ class AuthRepositoryImpl implements AuthRepository {
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
         throw const AuthFailure(message: 'Invalid username or password.');
+      }
+      if (e.response?.statusCode == 400) {
+        final data = e.response?.data;
+        final rawErrors = data is Map
+            ? (data['field_errors'] ?? data['errors'])
+            : null;
+        if (rawErrors is Map) {
+          throw ValidationFailure(
+            message: data?['message']?.toString() ??
+                'Please correct the highlighted fields.',
+            fieldErrors: rawErrors.map(
+              (key, value) => MapEntry(key.toString(), value.toString()),
+            ),
+          );
+        }
       }
       throw ServerFailure(
         message: e.response?.data?['message'] ?? 'Login failed. Please try again.',
@@ -107,12 +108,8 @@ class AuthRepositoryImpl implements AuthRepository {
     if (!hasToken) return null;
 
     if (_config.enableMockMode) {
-      _cachedUser = const User(
-        id: 'usr-operator-01',
-        email: 'operator@cleanbot.io',
-        fullName: 'Floor Operator',
-        role: UserRole.operator,
-      );
+      final email = await _storage.getDemoUserEmail();
+      _cachedUser = (email == null ? null : MockCatalog.accountFor(email))?.user;
       return _cachedUser;
     }
 

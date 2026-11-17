@@ -5,6 +5,7 @@ import '../../../core/config/backend_settings.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/backend_config_dialog.dart';
 import '../../../core/widgets/safety_banner.dart';
+import '../../../mock/mock_catalog.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -16,9 +17,10 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController =
-      TextEditingController(text: 'operator@cleanbot.io');
-  final _passwordController = TextEditingController(text: 'CleanBot#2026');
+  // No credentials are baked into the UI (NFR-SEC-2). Demo accounts are
+  // supplied by the mock catalogue and can be filled with the chips below.
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
@@ -39,6 +41,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (success && mounted) {
       context.go('/dashboard');
     }
+  }
+
+  void _fillDemoAccount(String email) {
+    final account = MockCatalog.accountFor(email);
+    if (account == null) return;
+    setState(() {
+      _usernameController.text = account.user.email;
+      _passwordController.text = account.password;
+    });
   }
 
   @override
@@ -218,10 +229,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         borderSide:
                             const BorderSide(color: AppColors.severityCritical),
                       ),
+                      errorText: authState.fieldErrors['email'],
                     ),
                     validator: (val) {
                       if (val == null || val.trim().isEmpty) {
                         return 'Please enter your operator ID or email';
+                      }
+                      if (!val.contains('@')) {
+                        return 'Enter a valid email address';
                       }
                       return null;
                     },
@@ -274,6 +289,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         borderSide:
                             const BorderSide(color: AppColors.severityCritical),
                       ),
+                      errorText: authState.fieldErrors['password'],
                     ),
                     validator: (val) {
                       if (val == null || val.isEmpty) {
@@ -370,9 +386,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              onPressed: () {
-                                _usernameController.text = 'operator@cleanbot.io';
-                              },
+                              onPressed: () => _fillDemoAccount(
+                                'operator@cleanbot.io',
+                              ),
                             ),
                             ActionChip(
                               backgroundColor: AppColors.softBlue,
@@ -385,9 +401,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              onPressed: () {
-                                _usernameController.text = 'admin@cleanbot.io';
-                              },
+                              onPressed: () => _fillDemoAccount(
+                                'admin@cleanbot.io',
+                              ),
                             ),
                             ActionChip(
                               backgroundColor: AppColors.softBlue,
@@ -400,9 +416,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              onPressed: () {
-                                _usernameController.text = 'readonly@cleanbot.io';
-                              },
+                              onPressed: () => _fillDemoAccount(
+                                'readonly@cleanbot.io',
+                              ),
                             ),
                           ],
                         ),

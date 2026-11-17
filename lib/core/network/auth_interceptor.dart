@@ -60,6 +60,10 @@ class AuthInterceptor extends QueuedInterceptor {
             final retryResponse = await _refreshDio.fetch(originalOptions);
             return handler.resolve(retryResponse);
           }
+
+          // A non-200 refresh response also ends the session.
+          await _storageService.clearTokens();
+          onSessionExpired?.call();
         } catch (_) {
           // Refresh failed, clear credentials and notify (MOB-AUTH-005)
           await _storageService.clearTokens();

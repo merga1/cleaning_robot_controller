@@ -11,6 +11,7 @@ import '../features/maintenance/presentation/maintenance_screen.dart';
 import '../features/map/presentation/live_map_screen.dart';
 import '../features/notifications/presentation/notifications_screen.dart';
 import '../features/onboarding/presentation/onboarding_screen.dart';
+import '../features/onboarding/presentation/splash_screen.dart';
 import '../features/progress/presentation/job_progress_screen.dart';
 import '../features/reports/presentation/reports_screen.dart';
 import '../features/robots/presentation/robot_list_screen.dart';
@@ -23,12 +24,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final prefs = ref.watch(preferencesServiceProvider);
 
   return GoRouter(
-    initialLocation: '/dashboard',
+    initialLocation: '/splash',
     redirect: (context, state) {
       final isOnboardingDone = prefs.isOnboardingCompleted();
       final isAuth = authState.isAuthenticated;
-      final isLoggingIn = state.matchedLocation == '/login';
-      final isOnboarding = state.matchedLocation == '/onboarding';
+      final location = state.matchedLocation;
+      final isSplash = location == '/splash';
+      final isLoggingIn = location == '/login';
+      final isOnboarding = location == '/onboarding';
+
+      // The splash screen owns the first routing decision after session
+      // restore (MOB-ONB-001).
+      if (isSplash) return null;
+      if (authState.isLoading) return '/splash';
 
       // 1. Force onboarding on first launch (MOB-ONB-002)
       if (!isOnboardingDone && !isOnboarding) {
@@ -48,6 +56,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingScreen(),

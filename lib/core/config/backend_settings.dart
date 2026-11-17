@@ -12,7 +12,7 @@ class BackendSettings extends Equatable {
     this.host = 'cleanbot.local',
     this.port = 8000,
     this.useTls = false,
-    this.useMock = false,
+    this.useMock = true,
   });
 
   String get scheme => useTls ? 'https' : 'http';

@@ -83,7 +83,9 @@ class PreferencesService {
   }
 
   bool getBackendUseMock() {
-    return _prefs.getBool(AppConstants.keyBackendUseMock) ?? false;
+    // Frontend-only demo is the default so the app is fully usable without a
+    // Raspberry Pi. The user can opt into a live backend in Backend settings.
+    return _prefs.getBool(AppConstants.keyBackendUseMock) ?? true;
   }
 
   Future<void> clearAll() async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/confirmation_dialog.dart';
 import '../../../auth/presentation/auth_controller.dart';
@@ -62,6 +63,102 @@ class ControlPanel extends ConsumerWidget {
     final isInFlight = controlsState.isInFlight;
     final lastCommand = controlsState.lastCommand;
 
+    // MOB-SAF-002 / MOB-CTRL-010: reasons shared by every command. Safety
+    // faults take precedence over connectivity and in-flight state.
+    String? globalReason;
+    if (robot.hasSafetyFault) {
+      globalReason =
+          'Safety fault active — the local safety controller is blocking '
+          'commands.';
+    } else if (robot.connectionState == RobotConnectionState.offline) {
+      globalReason = 'Robot is offline — commands cannot be delivered.';
+    } else if (isInFlight) {
+      globalReason = 'A command is already in progress.';
+    }
+
+    // MOB-CTRL-002/004: capability- and state-specific reasons.
+    String? commandReason(CommandType type) {
+      final global = globalReason;
+      if (global != null) return global;
+      final capabilities = robot.capabilities;
+      switch (type) {
+        case CommandType.call:
+          if (!capabilities.canCall) {
+            return 'Call is not supported by this robot model.';
+          }
+          return null;
+        case CommandType.inspectFloor:
+          if (!capabilities.canInspect) {
+            return 'Floor inspection is not supported by this robot model.';
+          }
+          return null;
+        case CommandType.startCleaning:
+          if (!capabilities.canClean) {
+            return 'Cleaning is not supported by this robot model.';
+          }
+          if (robot.status != RobotOperationalStatus.idle) {
+            return 'Start is available only while the robot is idle '
+                '(currently ${robot.status.displayName}).';
+          }
+          return null;
+        case CommandType.pause:
+          if (!capabilities.canPause) {
+            return 'Pause is not supported by this robot model.';
+          }
+          if (robot.status != RobotOperationalStatus.cleaning) {
+            return 'Pause is available only while cleaning.';
+          }
+          return null;
+        case CommandType.resume:
+          if (!capabilities.canResume) {
+            return 'Resume is not supported by this robot model.';
+          }
+          if (robot.status != RobotOperationalStatus.paused) {
+            return 'Resume is available only while paused.';
+          }
+          return null;
+        case CommandType.cancel:
+          if (!capabilities.canCancel) {
+            return 'Cancel is not supported by this robot model.';
+          }
+          if (robot.status != RobotOperationalStatus.cleaning &&
+              robot.status != RobotOperationalStatus.navigating) {
+            return 'Cancel is available only while cleaning or navigating.';
+          }
+          return null;
+        case CommandType.returnToDock:
+          if (!capabilities.canDock) {
+            return 'Docking is not supported by this robot model.';
+          }
+          if (robot.status == RobotOperationalStatus.charging) {
+            return 'The robot is already charging.';
+          }
+          if (robot.status == RobotOperationalStatus.returning) {
+            return 'The robot is already returning to the dock.';
+          }
+          return null;
+        case CommandType.requestStatusRefresh:
+          return null;
+      }
+    }
+
+    final CommandType primaryType;
+    final IconData primaryIcon;
+    final String primaryLabel;
+    if (robot.status == RobotOperationalStatus.cleaning) {
+      primaryType = CommandType.pause;
+      primaryIcon = Icons.pause_circle_filled_rounded;
+      primaryLabel = 'Pause Cleaning Mission';
+    } else if (robot.status == RobotOperationalStatus.paused) {
+      primaryType = CommandType.resume;
+      primaryIcon = Icons.play_circle_fill_rounded;
+      primaryLabel = 'Resume Cleaning Mission';
+    } else {
+      primaryType = CommandType.startCleaning;
+      primaryIcon = Icons.cleaning_services_rounded;
+      primaryLabel = 'Start Cleaning Mission';
+    }
+
     return Card(
       elevation: 0,
       color: AppColors.white,
@@ -115,102 +212,64 @@ class ControlPanel extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
 
-            // Command Lifecycle Badge (MOB-CTRL-006, Section 7)
-            if (lastCommand != null)
+            // MOB-SAF-002: a safety fault is called out explicitly.
+            if (robot.hasSafetyFault) ...[
               Container(
-                margin: const EdgeInsets.only(bottom: 14),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: lastCommand.state == CommandLifecycleState.failed ||
-                          lastCommand.state == CommandLifecycleState.rejected
-                      ? AppColors.severityCritical.withValues(alpha: 0.1)
-                      : lastCommand.state == CommandLifecycleState.executing
-                          ? AppColors.techOrange.withValues(alpha: 0.12)
-                          : AppColors.primaryNavy.withValues(alpha: 0.08),
+                  color: AppColors.severityCritical.withValues(alpha: 0.10),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: lastCommand.state == CommandLifecycleState.failed ||
-                            lastCommand.state == CommandLifecycleState.rejected
-                        ? AppColors.severityCritical.withValues(alpha: 0.3)
-                        : lastCommand.state == CommandLifecycleState.executing
-                            ? AppColors.techOrange.withValues(alpha: 0.5)
-                            : AppColors.primaryNavy.withValues(alpha: 0.2),
+                    color: AppColors.severityCritical.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      lastCommand.state == CommandLifecycleState.completed
-                          ? Icons.check_circle_outline
-                          : lastCommand.state == CommandLifecycleState.executing
-                              ? Icons.autorenew_rounded
-                              : Icons.info_outline,
+                    const Icon(
+                      Icons.dangerous_outlined,
                       size: 18,
-                      color: lastCommand.state == CommandLifecycleState.failed
-                          ? AppColors.severityCritical
-                          : lastCommand.state == CommandLifecycleState.executing
-                              ? AppColors.techOrange
-                              : AppColors.primaryNavy,
+                      color: AppColors.severityCritical,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${lastCommand.type.displayName}: ${lastCommand.state.label}',
-                        style: TextStyle(
+                        'Safety fault reported. All robot commands are blocked '
+                        'until the local safety controller clears it.',
+                        style: const TextStyle(
                           fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: lastCommand.state == CommandLifecycleState.failed
-                              ? AppColors.severityCritical
-                              : lastCommand.state == CommandLifecycleState.executing
-                                  ? AppColors.techOrange
-                                  : AppColors.primaryNavy,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.severityCritical,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+            ],
+
+            // Command Lifecycle Badge (MOB-CTRL-006, Section 7)
+            if (lastCommand != null)
+              _buildCommandBadge(context, ref, controlsState),
 
             // Primary Movement & Operation Controls
             Column(
               children: [
                 // Prominent Primary Action (Technology Orange)
-                if (robot.status == RobotOperationalStatus.cleaning)
-                  _buildPrimaryActionButton(
-                    context: context,
-                    ref: ref,
-                    type: CommandType.pause,
-                    icon: Icons.pause_circle_filled_rounded,
-                    label: 'Pause Cleaning Mission',
-                    isEnabled: !isInFlight && robot.capabilities.canPause,
-                    backgroundColor: AppColors.techOrange,
-                  )
-                else if (robot.status == RobotOperationalStatus.paused)
-                  _buildPrimaryActionButton(
-                    context: context,
-                    ref: ref,
-                    type: CommandType.resume,
-                    icon: Icons.play_circle_fill_rounded,
-                    label: 'Resume Cleaning Mission',
-                    isEnabled: !isInFlight && robot.capabilities.canResume,
-                    backgroundColor: AppColors.techOrange,
-                  )
-                else
-                  _buildPrimaryActionButton(
-                    context: context,
-                    ref: ref,
-                    type: CommandType.startCleaning,
-                    icon: Icons.cleaning_services_rounded,
-                    label: 'Start Cleaning Mission',
-                    isEnabled: !isInFlight &&
-                        robot.capabilities.canClean &&
-                        robot.connectionState != RobotConnectionState.offline,
-                    backgroundColor: AppColors.techOrange,
-                  ),
+                _buildPrimaryActionButton(
+                  context: context,
+                  ref: ref,
+                  type: primaryType,
+                  icon: primaryIcon,
+                  label: primaryLabel,
+                  disabledReason: commandReason(primaryType),
+                  backgroundColor: AppColors.techOrange,
+                ),
                 const SizedBox(height: 10),
 
-                // Secondary Navigation and Inspection Commands (Navy & Secondary Blue)
+                // Secondary Navigation and Inspection Commands
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: _buildSecondaryActionButton(
@@ -219,7 +278,7 @@ class ControlPanel extends ConsumerWidget {
                         type: CommandType.call,
                         icon: Icons.ring_volume_rounded,
                         label: 'Call Robot',
-                        isEnabled: !isInFlight && robot.capabilities.canCall,
+                        disabledReason: commandReason(CommandType.call),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -230,7 +289,7 @@ class ControlPanel extends ConsumerWidget {
                         type: CommandType.inspectFloor,
                         icon: Icons.search_rounded,
                         label: 'Inspect Floor',
-                        isEnabled: !isInFlight && robot.capabilities.canInspect,
+                        disabledReason: commandReason(CommandType.inspectFloor),
                       ),
                     ),
                   ],
@@ -238,6 +297,7 @@ class ControlPanel extends ConsumerWidget {
                 const SizedBox(height: 8),
 
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
                       child: _buildSecondaryActionButton(
@@ -246,9 +306,7 @@ class ControlPanel extends ConsumerWidget {
                         type: CommandType.returnToDock,
                         icon: Icons.home_rounded,
                         label: 'Return to Dock',
-                        isEnabled: !isInFlight &&
-                            robot.capabilities.canDock &&
-                            robot.status != RobotOperationalStatus.charging,
+                        disabledReason: commandReason(CommandType.returnToDock),
                         isDisruptive:
                             robot.status == RobotOperationalStatus.cleaning,
                       ),
@@ -263,7 +321,7 @@ class ControlPanel extends ConsumerWidget {
                           type: CommandType.cancel,
                           icon: Icons.cancel_rounded,
                           label: 'Cancel Run',
-                          isEnabled: !isInFlight && robot.capabilities.canCancel,
+                          disabledReason: commandReason(CommandType.cancel),
                           isDisruptive: true,
                         ),
                       ),
@@ -278,38 +336,139 @@ class ControlPanel extends ConsumerWidget {
     );
   }
 
+  Widget _buildCommandBadge(
+    BuildContext context,
+    WidgetRef ref,
+    ControlsState controlsState,
+  ) {
+    final command = controlsState.lastCommand!;
+    final state = command.state;
+    final color = _stateColor(state);
+    final isFailure =
+        state == CommandLifecycleState.rejected ||
+        state == CommandLifecycleState.failed ||
+        state == CommandLifecycleState.expired;
+    final noAcknowledgement =
+        controlsState.isTimedOut || state == CommandLifecycleState.expired;
+    final reason = command.rejectionReason ?? controlsState.errorMessage;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(_stateIcon(state), size: 18, color: color),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${command.type.displayName}: ${state.label}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (reason != null && reason.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              reason,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ],
+          if (isFailure && reason == null) ...[
+            const SizedBox(height: 6),
+            Text(
+              state.label,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.secondaryText,
+              ),
+            ),
+          ],
+          // MOB-CTRL-009: an unacknowledged command is recoverable in place.
+          if (noAcknowledgement) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                TextButton.icon(
+                  onPressed: controlsState.isInFlight
+                      ? null
+                      : () => ref
+                            .read(controlsControllerProvider.notifier)
+                            .retryLastCommand(robotId: robot.id),
+                  icon: const Icon(Icons.replay, size: 16),
+                  label: const Text('Retry'),
+                ),
+                const SizedBox(width: 4),
+                TextButton.icon(
+                  onPressed: controlsState.isInFlight
+                      ? null
+                      : () => ref
+                            .read(controlsControllerProvider.notifier)
+                            .checkStatus(),
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Check Status'),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildPrimaryActionButton({
     required BuildContext context,
     required WidgetRef ref,
     required CommandType type,
     required IconData icon,
     required String label,
-    required bool isEnabled,
+    required String? disabledReason,
     required Color backgroundColor,
   }) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: backgroundColor,
-        foregroundColor: AppColors.white,
-        disabledBackgroundColor: AppColors.paleBlue,
-        minimumSize: const Size.fromHeight(50),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: backgroundColor,
+            foregroundColor: AppColors.white,
+            disabledBackgroundColor: AppColors.paleBlue,
+            minimumSize: const Size.fromHeight(50),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: Icon(icon, size: 22),
+          label: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.3,
+            ),
+          ),
+          onPressed: disabledReason == null
+              ? () => _handleCommandTap(context, ref, type, false)
+              : null,
         ),
-      ),
-      icon: Icon(icon, size: 22),
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 0.3,
-        ),
-      ),
-      onPressed: isEnabled
-          ? () => _handleCommandTap(context, ref, type, false)
-          : null,
+        if (disabledReason != null) _buildDisabledReason(disabledReason),
+      ],
     );
   }
 
@@ -319,45 +478,67 @@ class ControlPanel extends ConsumerWidget {
     required CommandType type,
     required IconData icon,
     required String label,
-    required bool isEnabled,
+    required String? disabledReason,
     bool isDisruptive = false,
   }) {
-    return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        foregroundColor: isDisruptive
-            ? AppColors.severityCritical
-            : AppColors.primaryNavy,
-        backgroundColor: isDisruptive
-            ? AppColors.severityCritical.withValues(alpha: 0.05)
-            : AppColors.white,
-        side: BorderSide(
-          color: isDisruptive
-              ? AppColors.severityCritical.withValues(alpha: 0.4)
-              : AppColors.lightBorder,
-          width: 1.5,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: isDisruptive
+                ? AppColors.severityCritical
+                : AppColors.primaryNavy,
+            backgroundColor: isDisruptive
+                ? AppColors.severityCritical.withValues(alpha: 0.05)
+                : AppColors.white,
+            side: BorderSide(
+              color: isDisruptive
+                  ? AppColors.severityCritical.withValues(alpha: 0.4)
+                  : AppColors.lightBorder,
+              width: 1.5,
+            ),
+            minimumSize: const Size(0, 46),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+          icon: Icon(icon, size: 18),
+          label: Text(
+            label,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+            overflow: TextOverflow.ellipsis,
+          ),
+          onPressed: disabledReason == null
+              ? () => _handleCommandTap(context, ref, type, isDisruptive)
+              : null,
         ),
-        minimumSize: const Size(0, 46),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-      icon: Icon(icon, size: 18),
-      label: Text(
-        label,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
-      onPressed: isEnabled
-          ? () => _handleCommandTap(context, ref, type, isDisruptive)
-          : null,
+        if (disabledReason != null) _buildDisabledReason(disabledReason),
+      ],
     );
   }
 
-  void _handleCommandTap(
+  Widget _buildDisabledReason(String reason) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, size: 12, color: AppColors.mutedBlue),
+          const SizedBox(width: 4),
+          Expanded(
+            child: Text(
+              reason,
+              style: const TextStyle(fontSize: 11, color: AppColors.mutedBlue),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleCommandTap(
     BuildContext context,
     WidgetRef ref,
     CommandType type,
@@ -368,16 +549,82 @@ class ControlPanel extends ConsumerWidget {
         context,
         title: 'Confirm ${type.displayName}',
         message:
-            'Are you sure you want to trigger "${type.displayName}"? '
-            'This action commands physical motion on the robot.',
+            '${_effectStatement(type)}\n\n'
+            'The command is sent to the robot and its acknowledgement is '
+            'shown in the command console.',
         isDestructive: isDisruptive,
       );
       if (!confirmed) return;
     }
 
-    ref.read(controlsControllerProvider.notifier).executeCommand(
-          robotId: robot.id,
-          type: type,
-        );
+    ref
+        .read(controlsControllerProvider.notifier)
+        .executeCommand(robotId: robot.id, type: type);
+  }
+
+  /// Explicit, action-specific effects for disruptive confirmations.
+  String _effectStatement(CommandType type) {
+    switch (type) {
+      case CommandType.startCleaning:
+        return 'The robot will travel to the selected zones and begin '
+            'physical cleaning now.';
+      case CommandType.pause:
+        return 'The current cleaning pass will be held until it is resumed.';
+      case CommandType.resume:
+        return 'The held cleaning pass will continue from the current position.';
+      case CommandType.cancel:
+        return 'The current cleaning run will be ended and the robot will be '
+            'available for a new assignment.';
+      case CommandType.returnToDock:
+        return 'The robot will navigate back to its dock and begin charging; '
+            'the current cleaning run will be ended.';
+      case CommandType.call:
+        return 'The robot will signal its location so an operator can find it.';
+      case CommandType.inspectFloor:
+        return 'The robot will perform a floor assessment and record a '
+            'cleanliness reading.';
+      case CommandType.requestStatusRefresh:
+        return 'A fresh status snapshot will be requested from the robot.';
+    }
+  }
+
+  Color _stateColor(CommandLifecycleState state) {
+    switch (state) {
+      case CommandLifecycleState.completed:
+      case CommandLifecycleState.accepted:
+        return AppColors.levelNormal;
+      case CommandLifecycleState.rejected:
+      case CommandLifecycleState.failed:
+      case CommandLifecycleState.expired:
+        return AppColors.severityCritical;
+      case CommandLifecycleState.executing:
+      case CommandLifecycleState.dispatched:
+        return AppColors.techOrange;
+      case CommandLifecycleState.cancelled:
+        return AppColors.mutedBlue;
+      case CommandLifecycleState.submitting:
+      case CommandLifecycleState.pending:
+        return AppColors.primaryNavy;
+    }
+  }
+
+  IconData _stateIcon(CommandLifecycleState state) {
+    switch (state) {
+      case CommandLifecycleState.completed:
+        return Icons.check_circle_outline;
+      case CommandLifecycleState.executing:
+        return Icons.autorenew_rounded;
+      case CommandLifecycleState.rejected:
+      case CommandLifecycleState.failed:
+      case CommandLifecycleState.expired:
+        return Icons.error_outline;
+      case CommandLifecycleState.cancelled:
+        return Icons.cancel_outlined;
+      case CommandLifecycleState.submitting:
+      case CommandLifecycleState.pending:
+      case CommandLifecycleState.dispatched:
+      case CommandLifecycleState.accepted:
+        return Icons.info_outline;
+    }
   }
 }

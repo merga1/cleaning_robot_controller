@@ -16,8 +16,11 @@ enum WebSocketConnectionState {
 class WebSocketMessage {
   final String robotId;
   final String type;
+  /// Always compared in UTC (MOB-RT-006).
   final DateTime timestamp;
   final bool isSimulated;
+  /// Monotonic sequence id when supplied by the backend.
+  final int sequence;
   final Map<String, dynamic> payload;
 
   WebSocketMessage({
@@ -26,16 +29,21 @@ class WebSocketMessage {
     required this.timestamp,
     required this.isSimulated,
     required this.payload,
+    this.sequence = 0,
   });
 
   factory WebSocketMessage.fromJson(Map<String, dynamic> json) {
+    final parsed = json['timestamp'] != null
+        ? DateTime.tryParse(json['timestamp'] as String)
+        : null;
     return WebSocketMessage(
       robotId: json['robot_id'] as String? ?? '',
       type: json['type'] as String? ?? 'unknown',
-      timestamp: json['timestamp'] != null
-          ? DateTime.tryParse(json['timestamp'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      // A missing timestamp is marked epoch so it can never poison the
+      // freshness guard for later, correctly timestamped messages.
+      timestamp: (parsed ?? DateTime.fromMillisecondsSinceEpoch(0)).toUtc(),
       isSimulated: json['is_simulated'] as bool? ?? false,
+      sequence: (json['sequence'] as num?)?.toInt() ?? 0,
       payload: (json['payload'] as Map<String, dynamic>?) ?? {},
     );
   }
@@ -62,7 +70,9 @@ class CleanBotWebSocketClient {
 
   int _reconnectAttempts = 0;
   final Random _random = Random();
-  DateTime _lastMessageTime = DateTime.fromMillisecondsSinceEpoch(0);
+  DateTime _lastMessageTime =
+      DateTime.fromMillisecondsSinceEpoch(0).toUtc();
+  int _lastSequence = 0;
 
   final _stateController = StreamController<WebSocketConnectionState>.broadcast();
   final _messageController = StreamController<WebSocketMessage>.broadcast();
@@ -85,22 +95,37 @@ class CleanBotWebSocketClient {
       return;
     }
 
+    // Frontend-only demo mode never opens a real socket. The dashboard uses
+    // MockTelemetryService instead.
+    if (_config.enableMockMode) {
+      _updateState(WebSocketConnectionState.connected);
+      return;
+    }
+
     _updateState(WebSocketConnectionState.connecting);
 
     final token = await _storageService.getAccessToken();
     if (token == null || token.isEmpty) {
       _updateState(WebSocketConnectionState.disconnected);
+      _scheduleReconnect();
       return;
     }
 
-    final wsUri = Uri.parse('${_config.wsBaseUrl}?token=$token');
+    // The token belongs to the signed-in user (never an embedded secret) and
+    // is URL-encoded so special characters cannot corrupt the request.
+    final wsUri = Uri.parse(
+      '${_config.wsBaseUrl}?token=${Uri.encodeQueryComponent(token)}',
+    );
 
     try {
+      _reconnectTimer?.cancel();
       _channel = WebSocketChannel.connect(wsUri);
       await _channel!.ready;
 
       _updateState(WebSocketConnectionState.connected);
       _reconnectAttempts = 0;
+      _lastMessageTime = DateTime.fromMillisecondsSinceEpoch(0).toUtc();
+      _lastSequence = 0;
 
       _subscription = _channel!.stream.listen(
         (data) => _onMessageReceived(data),
@@ -118,11 +143,18 @@ class CleanBotWebSocketClient {
       final jsonMap = jsonDecode(rawData as String) as Map<String, dynamic>;
       final message = WebSocketMessage.fromJson(jsonMap);
 
-      // MOB-RT-006: Ignore out-of-order or duplicate live messages
-      if (message.timestamp.isBefore(_lastMessageTime)) {
+      // MOB-RT-006: Ignore out-of-order or duplicate live messages. Sequence
+      // ids take precedence; otherwise compare timestamps in UTC and accept
+      // equal timestamps from different events.
+      if (message.sequence > 0) {
+        if (message.sequence <= _lastSequence) return;
+        _lastSequence = message.sequence;
+      } else if (message.timestamp.isBefore(_lastMessageTime)) {
         return;
       }
-      _lastMessageTime = message.timestamp;
+      if (message.timestamp.isAfter(_lastMessageTime)) {
+        _lastMessageTime = message.timestamp;
+      }
 
       _messageController.add(message);
     } catch (_) {

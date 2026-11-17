@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../notifications/domain/notification_model.dart';
 
 class CleanlinessSummary extends Equatable {
   final double score; // 0.0 - 100.0
@@ -60,6 +61,8 @@ class DashboardSummaryModel extends Equatable {
   final bool wasteSensorFault;
   final CleanlinessSummary? latestCleanliness;
   final int activeAlertCount;
+  /// Active alerts ordered by severity (MOB-DASH-007).
+  final List<AlertNotificationModel> activeAlerts;
   final DateTime lastDataReceivedAt;
 
   const DashboardSummaryModel({
@@ -69,6 +72,7 @@ class DashboardSummaryModel extends Equatable {
     this.wasteSensorFault = false,
     this.latestCleanliness,
     this.activeAlertCount = 0,
+    this.activeAlerts = const [],
     required this.lastDataReceivedAt,
   });
 
@@ -84,6 +88,7 @@ class DashboardSummaryModel extends Equatable {
         wasteSensorFault,
         latestCleanliness,
         activeAlertCount,
+        activeAlerts,
         lastDataReceivedAt,
       ];
 }

@@ -130,6 +130,9 @@ class RobotModel extends Equatable {
   final RobotOperationalStatus status;
   final RobotCapabilities capabilities;
   final bool isSimulated;
+  /// Safety fault reported by the robot safety controller. When true the app
+  /// blocks backend-unavailable commands (MOB-SAF-002).
+  final bool hasSafetyFault;
   final DateTime lastUpdatedAt;
   final String firmwareVersion;
 
@@ -144,6 +147,7 @@ class RobotModel extends Equatable {
     required this.isSimulated,
     required this.lastUpdatedAt,
     required this.firmwareVersion,
+    this.hasSafetyFault = false,
   });
 
   factory RobotModel.fromJson(Map<String, dynamic> json) {
@@ -160,6 +164,7 @@ class RobotModel extends Equatable {
           ? RobotCapabilities.fromJson(json['capabilities'] as Map<String, dynamic>)
           : const RobotCapabilities(),
       isSimulated: json['is_simulated'] as bool? ?? false,
+      hasSafetyFault: json['has_safety_fault'] as bool? ?? false,
       lastUpdatedAt: json['last_updated_at'] != null
           ? DateTime.tryParse(json['last_updated_at'] as String) ?? DateTime.now()
           : DateTime.now(),
@@ -176,6 +181,7 @@ class RobotModel extends Equatable {
     RobotOperationalStatus? status,
     RobotCapabilities? capabilities,
     bool? isSimulated,
+    bool? hasSafetyFault,
     DateTime? lastUpdatedAt,
     String? firmwareVersion,
   }) {
@@ -188,6 +194,7 @@ class RobotModel extends Equatable {
       status: status ?? this.status,
       capabilities: capabilities ?? this.capabilities,
       isSimulated: isSimulated ?? this.isSimulated,
+      hasSafetyFault: hasSafetyFault ?? this.hasSafetyFault,
       lastUpdatedAt: lastUpdatedAt ?? this.lastUpdatedAt,
       firmwareVersion: firmwareVersion ?? this.firmwareVersion,
     );
@@ -203,6 +210,7 @@ class RobotModel extends Equatable {
         status,
         capabilities,
         isSimulated,
+        hasSafetyFault,
         lastUpdatedAt,
         firmwareVersion,
       ];

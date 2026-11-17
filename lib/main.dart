@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'core/network/session_expiry.dart';
 import 'core/storage/preferences_service.dart';
 import 'core/theme/app_theme.dart';
+import 'features/auth/presentation/auth_controller.dart';
 import 'features/settings/presentation/settings_screen.dart';
 import 'routing/app_router.dart';
 
@@ -31,6 +33,13 @@ class CleanBotApp extends ConsumerWidget {
     final router = ref.watch(appRouterProvider);
     final themeMode = ref.watch(appThemeModeProvider);
     final locale = ref.watch(appLocaleProvider);
+
+    // MOB-AUTH-005: a failed token refresh ends the session everywhere.
+    ref.listen(sessionExpiredProvider, (_, _) {
+      ref.read(authControllerProvider.notifier).forceLogout(
+            'Session expired. Please sign in again.',
+          );
+    });
 
     return MaterialApp.router(
       title: 'CleanBot',

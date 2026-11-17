@@ -49,6 +49,9 @@ class AlertNotificationModel extends Equatable {
   final AlertSeverity severity;
   final DateTime timestamp;
   final bool isRead;
+  /// Deep-link target for notification taps (MOB-NOTIF-006).
+  final String? targetRoute;
+  final bool isSimulated;
 
   const AlertNotificationModel({
     required this.id,
@@ -58,9 +61,15 @@ class AlertNotificationModel extends Equatable {
     required this.severity,
     required this.timestamp,
     this.isRead = false,
+    this.targetRoute,
+    this.isSimulated = false,
   });
 
-  AlertNotificationModel copyWith({bool? isRead}) {
+  AlertNotificationModel copyWith({
+    bool? isRead,
+    String? targetRoute,
+    bool? isSimulated,
+  }) {
     return AlertNotificationModel(
       id: id,
       robotId: robotId,
@@ -69,6 +78,8 @@ class AlertNotificationModel extends Equatable {
       severity: severity,
       timestamp: timestamp,
       isRead: isRead ?? this.isRead,
+      targetRoute: targetRoute ?? this.targetRoute,
+      isSimulated: isSimulated ?? this.isSimulated,
     );
   }
 
@@ -81,6 +92,8 @@ class AlertNotificationModel extends Equatable {
         severity,
         timestamp,
         isRead,
+        targetRoute,
+        isSimulated,
       ];
 }
 

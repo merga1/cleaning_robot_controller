@@ -47,6 +47,15 @@ class _BackendConfigDialogState extends ConsumerState<BackendConfigDialog> {
   }
 
   Future<void> _testConnection() async {
+    if (_useMock) {
+      setState(() {
+        _testSucceeded = true;
+        _testMessage =
+            'Demo data is active — no backend connection is required.';
+      });
+      return;
+    }
+
     final host = _hostController.text.trim();
     final port = int.tryParse(_portController.text.trim());
     if (host.isEmpty || port == null || port < 1 || port > 65535) {

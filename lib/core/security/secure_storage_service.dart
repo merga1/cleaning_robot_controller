@@ -30,9 +30,20 @@ class SecureStorageService {
     return await _storage.read(key: AppConstants.keyRefreshToken);
   }
 
+  /// Remembers which demo identity was selected so a restart does not silently
+  /// change the role (MOB-CTRL-003).
+  Future<void> saveDemoUserEmail(String email) async {
+    await _storage.write(key: AppConstants.keyDemoUserEmail, value: email);
+  }
+
+  Future<String?> getDemoUserEmail() async {
+    return _storage.read(key: AppConstants.keyDemoUserEmail);
+  }
+
   Future<void> clearTokens() async {
     await _storage.delete(key: AppConstants.keyAccessToken);
     await _storage.delete(key: AppConstants.keyRefreshToken);
+    await _storage.delete(key: AppConstants.keyDemoUserEmail);
   }
 
   Future<bool> hasValidSession() async {

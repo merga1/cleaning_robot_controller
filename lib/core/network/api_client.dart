@@ -4,6 +4,7 @@ import '../config/app_config.dart';
 import '../config/backend_settings.dart';
 import '../security/secure_storage_service.dart';
 import 'auth_interceptor.dart';
+import 'session_expiry.dart';
 
 final appConfigProvider = Provider<AppConfig>((ref) {
   final backend = ref.watch(backendSettingsProvider);
@@ -39,9 +40,7 @@ final dioProvider = Provider<Dio>((ref) {
       storageService: secureStorage,
       refreshDio: refreshDio,
       refreshEndpoint: '/auth/refresh',
-      onSessionExpired: () {
-        // Handled via state listener or router redirect
-      },
+      onSessionExpired: notifySessionExpired,
     ),
   );
 

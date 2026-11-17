@@ -4,6 +4,7 @@ class AppConstants {
   // Storage Keys
   static const String keyAccessToken = 'cleanbot_access_token';
   static const String keyRefreshToken = 'cleanbot_refresh_token';
+  static const String keyDemoUserEmail = 'cleanbot_demo_user_email';
   static const String keySelectedRobotId = 'cleanbot_selected_robot_id';
   static const String keyOnboardingComplete = 'cleanbot_onboarding_complete';
   static const String keyThemeMode = 'cleanbot_theme_mode';

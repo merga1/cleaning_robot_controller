@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../core/network/api_client.dart';
 import '../../../core/network/websocket_client.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/date_format.dart';
 import '../../../core/widgets/battery_indicator.dart';
 import '../../../core/widgets/capacity_gauge.dart';
 import '../../../core/widgets/connection_banner.dart';
 import '../../../core/widgets/safety_banner.dart';
+import '../../../core/widgets/screen_state_builder.dart';
 import '../../../core/widgets/simulated_badge.dart';
 import '../../../core/widgets/stale_badge.dart';
+import '../../../mock/mock_catalog.dart';
+import '../../../mock/mock_telemetry.dart';
 import '../../controls/presentation/widgets/control_panel.dart';
+import '../../notifications/domain/notification_model.dart';
 import '../../robots/domain/robot_model.dart';
 import '../../robots/presentation/robots_controller.dart';
+import '../../waste/domain/waste_model.dart';
 import '../domain/dashboard_summary_model.dart';
 import 'dashboard_controller.dart';
 
@@ -22,8 +30,18 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final robotsState = ref.watch(robotsControllerProvider);
     final dashboardState = ref.watch(dashboardControllerProvider);
+    final isMockMode = ref.watch(appConfigProvider).enableMockMode;
     final activeRobot = robotsState.activeRobot;
+    final summary = dashboardState.summary;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Thresholds are supplied by the waste model in demo mode; no controller
+    // exists for them yet, so live mode falls back to the value-free fill card.
+    final summaryRobotId =
+        summary?.robotId ?? activeRobot?.id ?? MockCatalog.alphaRobotId;
+    final wasteStatus = isMockMode
+        ? MockCatalog.wasteFor(summaryRobotId)
+        : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +77,8 @@ class DashboardScreen extends ConsumerWidget {
                     height: 8,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: activeRobot.connectionState ==
+                      color:
+                          activeRobot.connectionState ==
                               RobotConnectionState.online
                           ? AppColors.levelNormal
                           : AppColors.levelCritical,
@@ -109,105 +128,174 @@ class DashboardScreen extends ConsumerWidget {
       ),
       body: Column(
         children: [
-          // MOB-RT-005: Live WebSocket Connection Banner
+          // MOB-RT-005: Live telemetry banner. In demo mode the local telemetry
+          // service is re-synced; the real WebSocket is never touched.
           ConnectionBanner(
             connectionState: dashboardState.connectionState,
-            onRetry: () => ref.read(webSocketClientProvider).connect(),
+            onRetry: () {
+              if (isMockMode) {
+                ref.read(mockTelemetryProvider).emitSnapshot();
+                ref
+                    .read(dashboardControllerProvider.notifier)
+                    .loadDashboardData();
+              } else {
+                ref.read(webSocketClientProvider).connect();
+              }
+            },
           ),
 
           Expanded(
-            child: RefreshIndicator(
-              color: AppColors.techOrange,
-              onRefresh: () async {
-                await ref.read(robotsControllerProvider.notifier).loadRobots();
-                await ref
-                    .read(dashboardControllerProvider.notifier)
-                    .loadDashboardData();
-              },
-              child: ListView(
-                padding: const EdgeInsets.all(16.0),
-                children: [
-                  // MOB-SAF-001: Operational safety notice
-                  const SafetyBanner(compact: true),
-                  const SizedBox(height: 12),
+            child: ScreenStateBuilder(
+              isLoading: summary == null && dashboardState.errorMessage == null,
+              errorMessage: dashboardState.errorMessage,
+              isEmpty:
+                  summary == null &&
+                  !dashboardState.isLoading &&
+                  dashboardState.errorMessage == null,
+              isStale: dashboardState.isStale,
+              isDemo: isMockMode,
+              isSimulated: activeRobot?.isSimulated == true,
+              emptyMessage: 'No dashboard data is available for this robot.',
+              onRetry: () => ref
+                  .read(dashboardControllerProvider.notifier)
+                  .loadDashboardData(),
+              builder: (context) => RefreshIndicator(
+                color: AppColors.techOrange,
+                onRefresh: () async {
+                  await ref
+                      .read(robotsControllerProvider.notifier)
+                      .loadRobots();
+                  await ref
+                      .read(dashboardControllerProvider.notifier)
+                      .loadDashboardData();
+                },
+                child: ListView(
+                  padding: const EdgeInsets.all(16.0),
+                  children: [
+                    // MOB-SAF-001: Operational safety notice
+                    const SafetyBanner(compact: true),
+                    const SizedBox(height: 12),
 
-                  // Stale Data Banner (MOB-RT-005)
-                  if (dashboardState.isStale) ...[
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.staleBadgeBackground,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppColors.staleBadgeText.withValues(alpha: 0.3),
-                        ),
+                    // MOB-DASH-001: when the snapshot was last received.
+                    if (summary != null) ...[
+                      _buildLastUpdatedLine(
+                        context,
+                        summary.lastDataReceivedAt,
+                        isDark,
                       ),
-                      child: const Row(
-                        children: [
-                          StaleBadge(label: 'Telemetry Stale'),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Updates exceeded freshness threshold. Refresh to re-sync.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.staleBadgeText,
-                              ),
+                      const SizedBox(height: 12),
+                    ],
+
+                    // Stale Data Banner (MOB-RT-005)
+                    if (dashboardState.isStale) ...[
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.staleBadgeBackground,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: AppColors.staleBadgeText.withValues(
+                              alpha: 0.3,
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-
-                  // Current Active Job Card (MOB-DASH-004, MOB-PROG-001)
-                  _buildActiveJobCard(
-                    context,
-                    dashboardState.summary?.activeJob,
-                    isDark,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Telemetry Metrics Grid (Waste Container & Cleanliness)
-                  Row(
-                    children: [
-                      // Waste Container (MOB-DASH-005, MOB-WASTE-001)
-                      Expanded(
-                        child: _buildWasteContainerCard(
-                          context,
-                          dashboardState.summary?.wasteFillPercentage ?? 0,
-                          dashboardState.summary?.wasteSensorFault ?? false,
-                          isDark,
+                        ),
+                        child: const Row(
+                          children: [
+                            StaleBadge(label: 'Telemetry Stale'),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Updates exceeded freshness threshold. Refresh to re-sync.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.staleBadgeText,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      // Cleanliness Assessment (MOB-DASH-006, MOB-DASH-008)
-                      Expanded(
-                        child: _buildCleanlinessCard(
-                          context,
-                          dashboardState.summary?.latestCleanliness,
-                          isDark,
-                        ),
-                      ),
+                      const SizedBox(height: 12),
                     ],
-                  ),
-                  const SizedBox(height: 16),
 
-                  // Robot Controls Panel (MOB-CTRL-001..010)
-                  if (activeRobot != null) ...[
-                    ControlPanel(robot: activeRobot),
+                    // Current Active Job Card (MOB-DASH-004, MOB-PROG-001)
+                    _buildActiveJobCard(context, summary?.activeJob, isDark),
+                    const SizedBox(height: 12),
+
+                    // Telemetry Metrics Grid (Waste Container & Cleanliness)
+                    Row(
+                      children: [
+                        // Waste Container (MOB-DASH-005, MOB-WASTE-001)
+                        Expanded(
+                          child: _buildWasteContainerCard(
+                            context,
+                            summary?.wasteFillPercentage ?? 0,
+                            summary?.wasteSensorFault ?? false,
+                            wasteStatus,
+                            isDark,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Cleanliness Assessment (MOB-DASH-006, MOB-DASH-008)
+                        Expanded(
+                          child: _buildCleanlinessCard(
+                            context,
+                            summary?.latestCleanliness,
+                            isDark,
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 16),
-                  ],
 
-                  // Quick Navigation Shortcuts
-                  _buildQuickLinks(context, isDark),
-                ],
+                    // MOB-DASH-007: active alerts ordered by severity.
+                    if (summary != null && summary.activeAlerts.isNotEmpty) ...[
+                      _buildActiveAlertsCard(
+                        context,
+                        summary.activeAlerts,
+                        isDark,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Robot Controls Panel (MOB-CTRL-001..010)
+                    if (activeRobot != null) ...[
+                      ControlPanel(robot: activeRobot),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Quick Navigation Shortcuts
+                    _buildQuickLinks(context, isDark),
+                  ],
+                ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLastUpdatedLine(
+    BuildContext context,
+    DateTime lastDataReceivedAt,
+    bool isDark,
+  ) {
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : AppColors.secondaryText;
+    return Row(
+      children: [
+        Icon(Icons.schedule_outlined, size: 15, color: secondaryTextColor),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            'Last updated: ${formatDateTime(lastDataReceivedAt)} '
+            '(${formatRelative(lastDataReceivedAt)})',
+            style: TextStyle(fontSize: 12, color: secondaryTextColor),
+          ),
+        ),
+      ],
     );
   }
 
@@ -217,8 +305,9 @@ class DashboardScreen extends ConsumerWidget {
     bool isDark,
   ) {
     final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
-    final secondaryTextColor =
-        isDark ? Colors.white70 : AppColors.secondaryText;
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : AppColors.secondaryText;
 
     if (job == null) {
       return Card(
@@ -254,10 +343,7 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 2),
                     Text(
                       'Select a zone to start cleaning operations.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: secondaryTextColor,
-                      ),
+                      style: TextStyle(fontSize: 12, color: secondaryTextColor),
                     ),
                   ],
                 ),
@@ -323,8 +409,10 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.techOrange.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
@@ -346,10 +434,12 @@ class DashboardScreen extends ConsumerWidget {
                 child: LinearProgressIndicator(
                   value: job.progressPercentage / 100,
                   minHeight: 8,
-                  backgroundColor:
-                      isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                  valueColor:
-                      const AlwaysStoppedAnimation<Color>(AppColors.techOrange),
+                  backgroundColor: isDark
+                      ? AppColors.darkBorder
+                      : AppColors.lightBorder,
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    AppColors.techOrange,
+                  ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -361,7 +451,7 @@ class DashboardScreen extends ConsumerWidget {
                     style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                   Text(
-                    'Elapsed: ${job.elapsedTime.inMinutes}m ${job.elapsedTime.inSeconds % 60}s',
+                    'Elapsed: ${formatDuration(job.elapsedTime)}',
                     style: TextStyle(fontSize: 12, color: secondaryTextColor),
                   ),
                   const Text(
@@ -385,11 +475,29 @@ class DashboardScreen extends ConsumerWidget {
     BuildContext context,
     int fillPercentage,
     bool hasSensorFault,
+    WasteStatusModel? wasteStatus,
     bool isDark,
   ) {
     final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
-    final secondaryTextColor =
-        isDark ? Colors.white70 : AppColors.secondaryText;
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : AppColors.secondaryText;
+
+    // MOB-DASH-005 / MOB-WASTE-001..004: thresholds come from the model.
+    final isFull =
+        wasteStatus != null &&
+        !hasSensorFault &&
+        fillPercentage >= wasteStatus.fullThreshold;
+    final isWarning =
+        wasteStatus != null &&
+        !hasSensorFault &&
+        fillPercentage >= wasteStatus.warningThreshold &&
+        fillPercentage < wasteStatus.fullThreshold;
+    final levelColor = hasSensorFault || isFull
+        ? AppColors.severityCritical
+        : isWarning
+        ? AppColors.severityWarning
+        : primaryTextColor;
 
     return InkWell(
       onTap: () => context.push('/waste'),
@@ -424,11 +532,7 @@ class DashboardScreen extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: hasSensorFault
-                      ? AppColors.severityCritical
-                      : fillPercentage >= 85
-                          ? AppColors.levelCritical
-                          : primaryTextColor,
+                  color: levelColor,
                 ),
               ),
               const SizedBox(height: 8),
@@ -436,6 +540,27 @@ class DashboardScreen extends ConsumerWidget {
                 fillPercentage: fillPercentage,
                 hasSensorFault: hasSensorFault,
               ),
+              if (wasteStatus != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Warning at ${wasteStatus.warningThreshold.toStringAsFixed(0)}% '
+                  '· Full at ${wasteStatus.fullThreshold.toStringAsFixed(0)}%',
+                  style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                ),
+                if (isWarning || isFull) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    isFull
+                        ? 'Container full — empty it before the next job.'
+                        : 'Warning — plan to empty the container soon.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: levelColor,
+                    ),
+                  ),
+                ],
+              ],
             ],
           ),
         ),
@@ -449,8 +574,9 @@ class DashboardScreen extends ConsumerWidget {
     bool isDark,
   ) {
     final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
-    final secondaryTextColor =
-        isDark ? Colors.white70 : AppColors.secondaryText;
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : AppColors.secondaryText;
 
     return InkWell(
       onTap: () => context.push('/inspection'),
@@ -508,9 +634,125 @@ class DashboardScreen extends ConsumerWidget {
                   'Conf: ${(cleanliness.confidence * 100).toStringAsFixed(0)}%',
                   style: TextStyle(fontSize: 11, color: secondaryTextColor),
                 ),
+                // MOB-DASH-006: full local timestamp of the assessment.
+                const SizedBox(height: 4),
+                Text(
+                  'Assessed: ${formatDateTime(cleanliness.timestamp)}',
+                  style: TextStyle(fontSize: 11, color: secondaryTextColor),
+                ),
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveAlertsCard(
+    BuildContext context,
+    List<AlertNotificationModel> alerts,
+    bool isDark,
+  ) {
+    final primaryTextColor = isDark ? AppColors.white : AppColors.primaryNavy;
+    final secondaryTextColor = isDark
+        ? Colors.white70
+        : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
+    // Copy before sorting: the controller's list is immutable state.
+    final ordered = [...alerts]
+      ..sort((a, b) {
+        final bySeverity = b.severity.index.compareTo(a.severity.index);
+        return bySeverity != 0
+            ? bySeverity
+            : b.timestamp.compareTo(a.timestamp);
+      });
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.notifications_active_outlined,
+                  size: 18,
+                  color: AppColors.techOrange,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Active Alerts (${ordered.length})',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: primaryTextColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            ...ordered.map(
+              (alert) => Column(
+                children: [
+                  Divider(height: 1, color: borderColor),
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 6),
+                    leading: CircleAvatar(
+                      backgroundColor: alert.severity.color.withValues(
+                        alpha: 0.12,
+                      ),
+                      child: Icon(
+                        alert.severity.icon,
+                        size: 18,
+                        color: alert.severity.color,
+                      ),
+                    ),
+                    title: Text(
+                      alert.title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: primaryTextColor,
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            alert.message,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: secondaryTextColor,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${alert.severity.displayName} · '
+                            '${formatDateTime(alert.timestamp)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: alert.severity.color,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    trailing: const Icon(Icons.chevron_right, size: 18),
+                    onTap: alert.targetRoute != null
+                        ? () => context.push(alert.targetRoute!)
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -523,11 +765,7 @@ class DashboardScreen extends ConsumerWidget {
         'icon': Icons.map_outlined,
         'path': '/zones',
       },
-      {
-        'title': 'Live Map',
-        'icon': Icons.navigation_outlined,
-        'path': '/map',
-      },
+      {'title': 'Live Map', 'icon': Icons.navigation_outlined, 'path': '/map'},
       {
         'title': 'Mission Progress',
         'icon': Icons.insights_outlined,
@@ -543,11 +781,7 @@ class DashboardScreen extends ConsumerWidget {
         'icon': Icons.notifications_none,
         'path': '/notifications',
       },
-      {
-        'title': 'Cleaning History',
-        'icon': Icons.history,
-        'path': '/history',
-      },
+      {'title': 'Cleaning History', 'icon': Icons.history, 'path': '/history'},
       {
         'title': 'Reports & Analytics',
         'icon': Icons.bar_chart_outlined,

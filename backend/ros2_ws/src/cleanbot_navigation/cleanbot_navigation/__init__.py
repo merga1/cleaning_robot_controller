@@ -1,1 +1,0 @@
-"""CleanBot navigation package."""

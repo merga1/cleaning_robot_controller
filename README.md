@@ -41,6 +41,22 @@ flutter pub get
 flutter run
 ```
 
+### Mock-data demo
+
+Mock mode is the default. On a fresh install the app signs in as the demo
+operator and opens the dashboard directly, so every screen can be tested
+without onboarding, a login form, a Raspberry Pi or a backend. All telemetry,
+commands, zones, history and reports come from `lib/mock/`.
+
+To exercise the normal first-launch onboarding/login flow instead:
+
+```bash
+flutter run --dart-define=CLEANBOT_DEMO_AUTO_SIGN_IN=false
+```
+
+Switching the backend to a live robot in **Backend settings** also disables the
+demo auto sign-in. Signing out in the app returns to the login screen.
+
 ### Point it at the robot
 
 On the login screen open **Backend settings**:

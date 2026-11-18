@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/config/demo_mode.dart';
 import '../../../core/errors/failures.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/security/secure_storage_service.dart';
+import '../../../mock/mock_catalog.dart';
 import '../data/auth_repository_impl.dart';
 import '../domain/auth_repository.dart';
 import '../domain/user_model.dart';
@@ -61,9 +63,15 @@ class AuthController extends Notifier<AuthState> {
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
   /// Restores the session. The splash screen awaits this before routing.
+  ///
+  /// In mock mode the app is a frontend-only demo, so a fresh start signs in
+  /// the demo operator and lands on the dashboard instead of gating the UI
+  /// behind onboarding and a login form. The real flow stays untouched when
+  /// demo mode is off or [kDemoAutoSignIn] is disabled.
   Future<void> restoreSession() async {
     if (state.isLoading || state.isAuthenticated) return;
     state = state.copyWith(isLoading: true);
+    final config = ref.read(appConfigProvider);
     final isAuth = await _repository.isAuthenticated();
     if (isAuth) {
       final user = await _repository.getCurrentUser();
@@ -72,9 +80,18 @@ class AuthController extends Notifier<AuthState> {
         isAuthenticated: user != null,
         user: user,
       );
-    } else {
-      state = state.copyWith(isLoading: false, isAuthenticated: false);
+      return;
     }
+
+    if (config.enableMockMode && kDemoAutoSignIn) {
+      final demoAccount = MockCatalog.accountFor(MockCatalog.demoOperatorEmail);
+      if (demoAccount != null) {
+        await login(demoAccount.user.email, demoAccount.password);
+        return;
+      }
+    }
+
+    state = state.copyWith(isLoading: false, isAuthenticated: false);
   }
 
   Future<bool> login(String username, String password) async {

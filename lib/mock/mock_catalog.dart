@@ -35,6 +35,10 @@ class MockCatalog {
   static const String deltaRobotId = 'robot-delta-03';
   static const String gammaRobotId = 'robot-gamma-04';
 
+  /// Identity used when the mock-mode demo starts straight on the dashboard.
+  static const String demoOperatorEmail = 'operator@cleanbot.io';
+  static const String demoOperatorPassword = 'CleanBot#2026';
+
   static DateTime get nowUtc => DateTime.now().toUtc();
 
   static DateTime minutesAgo(int minutes) =>
@@ -57,11 +61,11 @@ class MockCatalog {
         DemoAccount(
           const User(
             id: 'user-operator',
-            email: 'operator@cleanbot.io',
+            email: demoOperatorEmail,
             fullName: 'Sara Operator',
             role: UserRole.operator,
           ),
-          'CleanBot#2026',
+          demoOperatorPassword,
         ),
         DemoAccount(
           const User(

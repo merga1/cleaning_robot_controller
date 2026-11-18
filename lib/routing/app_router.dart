@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../core/config/demo_mode.dart';
+import '../core/network/api_client.dart';
 import '../core/storage/preferences_service.dart';
 import '../features/auth/presentation/auth_controller.dart';
 import '../features/auth/presentation/login_screen.dart';
@@ -20,12 +22,16 @@ import '../features/waste/presentation/waste_screen.dart';
 import '../features/zones/presentation/zone_selection_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authControllerProvider);
-  final prefs = ref.watch(preferencesServiceProvider);
-
+  // Read (rather than watch) auth/config here: rebuilding GoRouter on every
+  // auth change would reset it to /splash and swallow the splash screen's
+  // post-restore navigation.
   return GoRouter(
     initialLocation: '/splash',
     redirect: (context, state) {
+      final authState = ref.read(authControllerProvider);
+      final prefs = ref.read(preferencesServiceProvider);
+      final config = ref.read(appConfigProvider);
+      final skipIntro = config.enableMockMode && kDemoAutoSignIn;
       final isOnboardingDone = prefs.isOnboardingCompleted();
       final isAuth = authState.isAuthenticated;
       final location = state.matchedLocation;
@@ -38,13 +44,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       if (isSplash) return null;
       if (authState.isLoading) return '/splash';
 
-      // 1. Force onboarding on first launch (MOB-ONB-002)
-      if (!isOnboardingDone && !isOnboarding) {
+      // 1. Force onboarding on first launch (MOB-ONB-002). The mock-data demo
+      // skips it so a fresh install opens directly on the dashboard.
+      if (!skipIntro && !isOnboardingDone && !isOnboarding) {
         return '/onboarding';
       }
 
-      // 2. Auth gating
-      if (!isAuth && !isLoggingIn && isOnboardingDone) {
+      // 2. Auth gating. During demo auto sign-in the splash screen owns the
+      // transition; afterwards a signed-out user still gets the login form.
+      if (!isAuth && !isLoggingIn && !isSplash) {
         return '/login';
       }
 
